@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe } from 'firebase/firestore';
 
 export interface Student {
   id: string;
@@ -50,4 +50,22 @@ export const getStudents = async (): Promise<Student[]> => {
     console.error('Error getting documents: ', e);
     throw new Error('Could not retrieve students.');
   }
+};
+
+
+export const getStudentsRealtime = (callback: (students: Student[]) => void): Unsubscribe => {
+    const unsubscribe = onSnapshot(studentsCollection, (querySnapshot) => {
+        const students = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Student, 'id' | 'birth_date' | 'registration_date'>),
+            birth_date: (doc.data().birth_date as Timestamp).toDate(),
+            registration_date: (doc.data().registration_date as Timestamp),
+        }));
+        callback(students);
+    }, (error) => {
+        console.error("Error getting documents in real-time: ", error);
+        throw new Error('Could not retrieve students in real-time.');
+    });
+
+    return unsubscribe;
 };

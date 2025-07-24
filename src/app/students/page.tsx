@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useEffect, useState } from 'react';
-import { getStudents, Student } from '@/services/students';
+import { getStudentsRealtime, Student } from '@/services/students';
 import { format } from 'date-fns';
 
 export default function StudentsPage() {
@@ -32,18 +32,13 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const studentsList = await getStudents();
-        setStudents(studentsList);
-      } catch (error) {
-        console.error("Error fetching students: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const unsubscribe = getStudentsRealtime((studentsList) => {
+      setStudents(studentsList);
+      setLoading(false);
+    });
 
-    fetchStudents();
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
   }, []);
 
   const getStatusBadgeVariant = (status: Student['status']) => {
@@ -139,4 +134,3 @@ export default function StudentsPage() {
     </div>
   );
 }
-
