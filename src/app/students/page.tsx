@@ -21,6 +21,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { useEffect, useState, useMemo } from 'react';
 import { getStudentsRealtime, Student, deleteStudent, updateStudent, SHEIKHS, LEVELS } from '@/services/students';
@@ -161,7 +162,7 @@ export default function StudentsPage() {
     setIsEditDialogOpen(true);
   };
   
-  const handleUpdate = async (values: Omit<Student, 'id'>) => {
+  const handleUpdate = async (values: Omit<Student, 'id' | 'registration_date'>, resetForm: () => void) => {
     if (!selectedStudent) return;
     try {
         await updateStudent(selectedStudent.id, values);
@@ -275,13 +276,14 @@ export default function StudentsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 text-base"
                         />
-                        <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     </div>
                     </CardHeader>
                     <CardContent>
                     {loading ? (
                         <p className='text-center py-8'>جارٍ تحميل بيانات الطلبة...</p>
                     ) : (
+                        <div className="border rounded-md">
                         <Table>
                         <TableHeader>
                             <TableRow>
@@ -306,6 +308,7 @@ export default function StudentsPage() {
                                 {format(student.registration_date, 'yyyy-MM-dd')}
                                 </TableCell>
                                 <TableCell className="text-center">
+                                <AlertDialog>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon">
@@ -314,34 +317,32 @@ export default function StudentsPage() {
                                     </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                    <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
-                                        <Edit className="h-4 w-4" />
-                                        عرض التفاصيل والتعديل
-                                    </DropdownMenuItem>
-                                    
-                                    <AlertDialog>
+                                        <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
+                                            <Edit className="h-4 w-4" />
+                                            عرض وتعديل البيانات
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <AlertDialogTrigger asChild>
-                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                            <DropdownMenuItem className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10" onSelect={(e) => e.preventDefault()}>
                                                 <Trash2 className="h-4 w-4" />
-                                                حذف
+                                                حذف الطالب
                                             </DropdownMenuItem>
                                         </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف سجل الطالب بشكل دائم من خوادمنا.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(student.id)}>متابعة</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                        </AlertDialog>
-
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف سجل الطالب ({student.full_name}) بشكل دائم من خوادمنا.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(student.id)} className="bg-destructive hover:bg-destructive/90">تأكيد الحذف</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
                                 </TableCell>
                             </TableRow>
                             )) : (
@@ -353,6 +354,7 @@ export default function StudentsPage() {
                             )}
                         </TableBody>
                         </Table>
+                        </div>
                     )}
                     </CardContent>
                 </Card>
@@ -360,19 +362,21 @@ export default function StudentsPage() {
         </div>
       
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-            <DialogTitle className='font-headline'>عرض وتعديل بيانات الطالب</DialogTitle>
+            <DialogTitle className='font-headline text-2xl'>عرض وتعديل بيانات الطالب</DialogTitle>
             <DialogDescription>
                 يمكنك عرض وتحديث بيانات الطالب من هنا. اضغط على "حفظ التغييرات" عند الانتهاء.
             </DialogDescription>
             </DialogHeader>
             {selectedStudent && (
-                <StudentForm 
-                    onSubmit={handleUpdate} 
-                    student={selectedStudent} 
-                    submitButtonText="حفظ التغييرات"
-                />
+                <div className="py-4">
+                    <StudentForm 
+                        onSubmit={handleUpdate as any} 
+                        student={selectedStudent} 
+                        submitButtonText="حفظ التغييرات"
+                    />
+                </div>
             )}
         </DialogContent>
       </Dialog>

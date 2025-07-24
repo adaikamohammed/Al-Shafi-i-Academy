@@ -31,16 +31,16 @@ import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { Student } from '@/services/students';
+import { Student, SHEIKHS, LEVELS } from '@/services/students';
 import { useEffect, useState } from 'react';
 
-const formSchema = z.object({
+const StudentFormSchema = z.object({
   full_name: z.string().min(2, 'الاسم يجب أن يتكون من حرفين على الأقل.'),
   gender: z.enum(['ذكر', 'أنثى'], { required_error: 'الرجاء اختيار الجنس.' }),
   birth_date: z.date({
     required_error: 'تاريخ الميلاد مطلوب.',
   }),
-  level: z.enum(['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'], { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
+  level: z.enum(LEVELS, { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
   guardian_name: z.string().min(2, 'اسم الأب يجب أن يتكون من حرفين على الأقل.'),
   phone1: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح. يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.'),
   phone2: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
@@ -51,8 +51,11 @@ const formSchema = z.object({
   note: z.string().optional(),
 });
 
+
+type StudentFormValues = z.infer<typeof StudentFormSchema>;
+
 type StudentFormProps = {
-    onSubmit: (values: Omit<Student, 'id'>, resetForm: () => void) => Promise<void>;
+    onSubmit: (values: Omit<Student, 'id'|'registration_date'>, resetForm: () => void) => Promise<void>;
     student?: Student | null;
     submitButtonText?: string;
 }
@@ -62,9 +65,12 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
   const [age, setAge] = useState<number | null>(null);
   const [ageGroup, setAgeGroup] = useState<string | null>(null);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  const form = useForm<StudentFormValues>({
+    resolver: zodResolver(StudentFormSchema),
+    defaultValues: student ? {
+      ...student,
+      birth_date: student.birth_date instanceof Date ? student.birth_date : (student.birth_date as any).toDate(),
+    } : {
       full_name: '',
       guardian_name: '',
       address: '',
@@ -78,14 +84,27 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
 
   useEffect(() => {
     if (student) {
+        const birthDate = student.birth_date instanceof Date ? student.birth_date : (student.birth_date as any).toDate();
         form.reset({
             ...student,
-            birth_date: student.birth_date instanceof Date ? student.birth_date : (student.birth_date as any).toDate(),
+            birth_date: birthDate
         });
-        handleDateChange(student.birth_date instanceof Date ? student.birth_date : (student.birth_date as any).toDate());
+        handleDateChange(birthDate);
         setStatus(student.status)
     }
   }, [student, form])
+
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'birth_date') {
+        handleDateChange(value.birth_date);
+      }
+      if (name === 'status') {
+        setStatus(value.status);
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [form.watch])
 
   function calculateAge(birthDate: Date) {
     const today = new Date();
@@ -106,7 +125,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
 
   const handleDateChange = (date: Date | undefined) => {
     if(date) {
-        form.setValue('birth_date', date);
+        // form.setValue('birth_date', date); // No need to set value here, watch will trigger
         const calculatedAge = calculateAge(date);
         const calculatedAgeGroup = getAgeGroup(calculatedAge);
         setAge(calculatedAge);
@@ -114,20 +133,28 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
     }
   }
 
-  const handleFormSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleFormSubmit = (values: StudentFormValues) => {
     const calculatedAge = calculateAge(values.birth_date);
     const age_group = getAgeGroup(calculatedAge);
 
-    const studentData: Omit<Student, 'id'> = {
+    const studentData: Omit<Student, 'id'|'registration_date'> = {
       ...values,
       age: calculatedAge,
       age_group,
-      registration_date: student ? student.registration_date : new Date(),
-      reminder_points: student ? student.reminder_points : 0,
+      reminder_points: student?.reminder_points ?? 0,
     };
     
     const resetTheForm = () => {
-        form.reset();
+        form.reset({
+            full_name: '',
+            guardian_name: '',
+            address: '',
+            phone1: '',
+            phone2: '',
+            page_number: 0,
+            note: '',
+            assigned_sheikh: '',
+        });
         setStatus(undefined);
         setAge(null);
         setAgeGroup(null);
@@ -138,8 +165,8 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
 
   return (
     <Form {...form}>
-    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
             control={form.control}
             name="full_name"
@@ -176,7 +203,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
         />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <FormField
             control={form.control}
             name="birth_date"
@@ -206,7 +233,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                     <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={handleDateChange}
+                    onSelect={field.onChange}
                     disabled={(date) =>
                         date > new Date() || date < new Date('1990-01-01')
                     }
@@ -227,7 +254,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
         </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
             control={form.control}
             name="level"
@@ -241,12 +268,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                     </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                    <SelectItem value="تحضيري">تحضيري</SelectItem>
-                    <SelectItem value="روضة">روضة</SelectItem>
-                    <SelectItem value="5 سنوات ابتدائي">5 سنوات ابتدائي</SelectItem>
-                    <SelectItem value="4 متوسط">4 متوسط</SelectItem>
-                    <SelectItem value="3 ثانوي">3 ثانوي</SelectItem>
-                    <SelectItem value="جامعي">جامعي</SelectItem>
+                    {LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}
                 </SelectContent>
                 </Select>
                 <FormMessage />
@@ -268,7 +290,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
         />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
             control={form.control}
             name="phone1"
@@ -311,14 +333,14 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
         )}
         />
     
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
             control={form.control}
             name="status"
             render={({ field }) => (
             <FormItem>
                 <FormLabel className="font-headline">الحالة</FormLabel>
-                <Select onValueChange={(value) => { field.onChange(value); setStatus(value); }} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                     <SelectTrigger>
                     <SelectValue placeholder="اختر الحالة" />
@@ -349,14 +371,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                        <SelectItem value="الشيخ إبراهيم مراد">الشيخ إبراهيم مراد</SelectItem>
-                        <SelectItem value="الشيخ عبد القادر">الشيخ عبد القادر</SelectItem>
-                        <SelectItem value="الشيخ زياد درويش">الشيخ زياد درويش</SelectItem>
-                        <SelectItem value="الشيخ أحمد بن عمر">الشيخ أحمد بن عمر</SelectItem>
-                        <SelectItem value="الشيخ فؤاد بن عمر">الشيخ فؤاد بن عمر</SelectItem>
-                        <SelectItem value="الشيخ صهيب نصيب">الشيخ صهيب نصيب</SelectItem>
-                        <SelectItem value="الشيخ سفيان نصيرة">الشيخ سفيان نصيرة</SelectItem>
-                        <SelectItem value="الشيخ عبد الحق نصيرة">الشيخ عبد الحق نصيرة</SelectItem>
+                        {SHEIKHS.map(sheikh => <SelectItem key={sheikh} value={sheikh}>{sheikh}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <FormMessage />
