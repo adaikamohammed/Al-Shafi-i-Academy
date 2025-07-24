@@ -341,9 +341,14 @@ export default function RegisterPage() {
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                            <SelectItem value="الشيخ أحمد">الشيخ أحمد</SelectItem>
-                            <SelectItem value="الشيخ خالد">الشيخ خالد</SelectItem>
-                             <SelectItem value="الشيخ علي">الشيخ علي</SelectItem>
+                                <SelectItem value="الشيخ إبراهيم مراد">الشيخ إبراهيم مراد</SelectItem>
+                                <SelectItem value="الشيخ عبد القادر">الشيخ عبد القادر</SelectItem>
+                                <SelectItem value="الشيخ زياد درويش">الشيخ زياد درويش</SelectItem>
+                                <SelectItem value="الشيخ أحمد بن عمر">الشيخ أحمد بن عمر</SelectItem>
+                                <SelectItem value="الشيخ فؤاد بن عمر">الشيخ فؤاد بن عمر</SelectItem>
+                                <SelectItem value="الشيخ صهيب نصيب">الشيخ صهيب نصيب</SelectItem>
+                                <SelectItem value="الشيخ سفيان نصيرة">الشيخ سفيان نصيرة</SelectItem>
+                                <SelectItem value="الشيخ عبد الحق نصيرة">الشيخ عبد الحق نصيرة</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -382,8 +387,8 @@ export default function RegisterPage() {
                 />
 
 
-              <Button type="submit" size="lg" className="w-full font-headline">
-                إرسال التسجيل
+              <Button type="submit" size="lg" className="w-full font-headline bg-accent text-accent-foreground hover:bg-accent/90">
+                تسجيل الطالب
               </Button>
             </form>
           </Form>
