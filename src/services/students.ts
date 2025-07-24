@@ -1,11 +1,11 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export interface Student {
   id: string;
   full_name: string;
   gender: 'ذكر' | 'أنثى';
-  birth_date: Date;
+  birth_date: Date | Timestamp;
   age: number;
   age_group: 'أقل من 7' | 'من 7–10' | 'من 11–13' | '14+';
   level: 'تحضيري' | 'روضة' | '5 سنوات ابتدائي' | '4 متوسط' | '3 ثانوي' | 'جامعي';
@@ -23,7 +23,7 @@ export interface Student {
 
 const studentsCollection = collection(db, 'الطلبة');
 
-export const addStudent = async (studentData: Omit<Student, 'id'>) => {
+export const addStudent = async (studentData: Omit<Student, 'id'|'registration_date'|'birth_date'> & { birth_date: Date }) => {
   try {
     const docRef = await addDoc(studentsCollection, {
         ...studentData,
@@ -37,20 +37,30 @@ export const addStudent = async (studentData: Omit<Student, 'id'>) => {
   }
 };
 
-export const getStudents = async (): Promise<Student[]> => {
-  try {
-    const q = query(studentsCollection, orderBy('registration_date', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...(doc.data() as Omit<Student, 'id' | 'birth_date' | 'registration_date'>),
-      birth_date: (doc.data().birth_date as Timestamp).toDate(),
-      registration_date: (doc.data().registration_date as Timestamp),
-    }));
-  } catch (e) {
-    console.error('Error getting documents: ', e);
-    throw new Error('Could not retrieve students.');
-  }
+export const updateStudent = async (studentId: string, studentData: Partial<Omit<Student, 'id'>>) => {
+    try {
+        const studentDoc = doc(db, 'الطلبة', studentId);
+        const dataToUpdate = { ...studentData };
+
+        if (dataToUpdate.birth_date && dataToUpdate.birth_date instanceof Date) {
+            dataToUpdate.birth_date = Timestamp.fromDate(dataToUpdate.birth_date);
+        }
+
+        await updateDoc(studentDoc, dataToUpdate);
+    } catch (e) {
+        console.error('Error updating document: ', e);
+        throw new Error('Could not update student.');
+    }
+};
+
+export const deleteStudent = async (studentId: string) => {
+    try {
+        const studentDoc = doc(db, 'الطلبة', studentId);
+        await deleteDoc(studentDoc);
+    } catch (e) {
+        console.error('Error deleting document: ', e);
+        throw new Error('Could not delete student.');
+    }
 };
 
 
@@ -59,9 +69,7 @@ export const getStudentsRealtime = (callback: (students: Student[]) => void): Un
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const students = querySnapshot.docs.map(doc => ({
             id: doc.id,
-            ...(doc.data() as Omit<Student, 'id' | 'birth_date' | 'registration_date'>),
-            birth_date: (doc.data().birth_date as Timestamp).toDate(),
-            registration_date: (doc.data().registration_date as Timestamp),
+            ...(doc.data() as Omit<Student, 'id'>),
         }));
         callback(students);
     }, (error) => {

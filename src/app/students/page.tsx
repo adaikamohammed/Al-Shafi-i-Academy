@@ -24,20 +24,51 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useEffect, useState } from 'react';
-import { getStudentsRealtime, Student } from '@/services/students';
+import { getStudentsRealtime, Student, deleteStudent, updateStudent } from '@/services/students';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import StudentForm from '@/components/student-form';
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   useEffect(() => {
     const unsubscribe = getStudentsRealtime((studentsList) => {
-      setStudents(studentsList);
+      const formattedStudents = studentsList.map(s => ({
+        ...s,
+        birth_date: s.birth_date instanceof Date ? s.birth_date : (s.birth_date as any).toDate(),
+        registration_date: s.registration_date instanceof Date ? s.registration_date : (s.registration_date as any).toDate(),
+      }))
+      setStudents(formattedStudents);
       setLoading(false);
     });
 
-    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
 
@@ -55,6 +86,48 @@ export default function StudentsPage() {
         return 'default';
     }
   };
+  
+  const handleDelete = async (studentId: string) => {
+    try {
+      await deleteStudent(studentId);
+      toast({
+        title: 'تم الحذف بنجاح!',
+        description: 'تم حذف سجل الطالب من النظام.',
+        className: 'bg-accent text-accent-foreground',
+      });
+    } catch (error) {
+       toast({
+        title: 'حدث خطأ!',
+        description: 'فشل حذف سجل الطالب. الرجاء المحاولة مرة أخرى.',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  const handleEdit = (student: Student) => {
+    setSelectedStudent(student);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleUpdate = async (values: Omit<Student, 'id'>) => {
+    if (!selectedStudent) return;
+    try {
+        await updateStudent(selectedStudent.id, values);
+        toast({
+            title: 'تم التعديل بنجاح!',
+            description: `تم تحديث بيانات الطالب ${values.full_name}.`,
+            className: 'bg-accent text-accent-foreground',
+        });
+        setIsEditDialogOpen(false);
+        setSelectedStudent(null);
+    } catch (error) {
+        toast({
+            title: 'حدث خطأ!',
+            description: 'فشل تحديث بيانات الطالب. الرجاء المحاولة مرة أخرى.',
+            variant: 'destructive',
+        });
+    }
+  }
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -102,7 +175,7 @@ export default function StudentsPage() {
                       </Badge>
                     </TableCell>
                      <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
-                      {format(student.registration_date.toDate(), 'yyyy-MM-dd')}
+                      {format(student.registration_date, 'yyyy-MM-dd')}
                     </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
@@ -113,14 +186,32 @@ export default function StudentsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="flex gap-2">
+                          <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
                             <Edit className="h-4 w-4" />
                             تعديل
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                            حذف
-                          </DropdownMenuItem>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                    <Trash2 className="h-4 w-4" />
+                                    حذف
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف سجل الطالب بشكل دائم من خوادمنا.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(student.id)}>متابعة</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                            </AlertDialog>
+
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -131,6 +222,25 @@ export default function StudentsPage() {
           )}
         </CardContent>
       </Card>
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-4xl">
+            <DialogHeader>
+            <DialogTitle className='font-headline'>تعديل بيانات الطالب</DialogTitle>
+            <DialogDescription>
+                قم بتحديث الحقول أدناه لحفظ التغييرات.
+            </DialogDescription>
+            </DialogHeader>
+            {selectedStudent && (
+                <StudentForm 
+                    onSubmit={handleUpdate} 
+                    student={selectedStudent} 
+                    submitButtonText="حفظ التغييرات"
+                />
+            )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
