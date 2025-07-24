@@ -38,43 +38,96 @@ import { CalendarIcon, UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { addStudent, Student } from '@/services/students';
+import { useState } from 'react';
 
 const formSchema = z.object({
-  studentName: z.string().min(2, 'الاسم يجب أن يتكون من حرفين على الأقل.'),
-  fatherName: z.string().min(2, 'اسم الأب يجب أن يتكون من حرفين على الأقل.'),
-  dob: z.date({
+  full_name: z.string().min(2, 'الاسم يجب أن يتكون من حرفين على الأقل.'),
+  gender: z.enum(['ذكر', 'أنثى'], { required_error: 'الرجاء اختيار الجنس.' }),
+  birth_date: z.date({
     required_error: 'تاريخ الميلاد مطلوب.',
   }),
-  grade: z.string({ required_error: 'الرجاء اختيار الصف.' }),
+  level: z.enum(['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'], { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
+  guardian_name: z.string().min(2, 'اسم الأب يجب أن يتكون من حرفين على الأقل.'),
+  phone1: z.string().regex(/^(\+?\d{1,3}[- ]?)?\d{10}$/, 'رقم الهاتف غير صالح.'),
+  phone2: z.string().regex(/^(\+?\d{1,3}[- ]?)?\d{10}$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
   address: z.string().min(5, 'العنوان يجب أن يتكون من 5 أحرف على الأقل.'),
-  guardianPhone: z.string().regex(/^(\+?\d{1,3}[- ]?)?\d{10}$/, 'رقم الهاتف غير صالح.'),
+  status: z.enum(['تم الانضمام', 'مؤجل', 'دخل لمدرسة أخرى', 'رُفِض'], { required_error: 'الرجاء اختيار الحالة.' }),
+  page_number: z.coerce.number().optional(),
+  assigned_sheikh: z.string().optional(),
+  note: z.string().optional(),
 });
 
 export default function RegisterPage() {
   const { toast } = useToast();
+  const [status, setStatus] = useState<string | undefined>();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      studentName: '',
-      fatherName: '',
+      full_name: '',
+      guardian_name: '',
       address: '',
-      guardianPhone: '',
+      phone1: '',
+      phone2: '',
+      page_number: 0,
+      note: '',
+      assigned_sheikh: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: 'تم التسجيل بنجاح!',
-      description: `تم تسجيل الطالب ${values.studentName} في النظام.`,
-      className: 'bg-accent text-accent-foreground',
-    });
-    form.reset();
+  function calculateAge(birthDate: Date) {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
+  function getAgeGroup(age: number) {
+    if (age < 7) return 'أقل من 7';
+    if (age >= 7 && age <= 10) return 'من 7–10';
+    if (age >= 11 && age <= 13) return 'من 11–13';
+    return '14+';
+  }
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    try {
+      const age = calculateAge(values.birth_date);
+      const age_group = getAgeGroup(age);
+
+      const studentData: Omit<Student, 'id'> = {
+        ...values,
+        age,
+        age_group,
+        registration_date: new Date(),
+        reminder_points: 0,
+      };
+      
+      await addStudent(studentData);
+
+      toast({
+        title: 'تم التسجيل بنجاح!',
+        description: `تم تسجيل الطالب ${values.full_name} في النظام.`,
+        className: 'bg-accent text-accent-foreground',
+      });
+      form.reset();
+      setStatus(undefined);
+    } catch (error) {
+       toast({
+        title: 'حدث خطأ!',
+        description: `فشل تسجيل الطالب. الرجاء المحاولة مرة أخرى.`,
+        variant: 'destructive',
+      });
+    }
   }
 
   return (
     <div className="container mx-auto py-12 px-4">
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle className="font-headline text-2xl flex items-center gap-3">
             <UserPlus className="h-8 w-8 text-primary" />
@@ -90,10 +143,10 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <FormField
                   control={form.control}
-                  name="studentName"
+                  name="full_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-headline">اسم الطالب كاملاً</FormLabel>
+                      <FormLabel className="font-headline">الاسم الكامل</FormLabel>
                       <FormControl>
                         <Input placeholder="مثال: محمد عبدالله" {...field} />
                       </FormControl>
@@ -101,15 +154,23 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
+                 <FormField
                   control={form.control}
-                  name="fatherName"
+                  name="gender"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-headline">اسم الأب</FormLabel>
-                      <FormControl>
-                        <Input placeholder="مثال: عبدالله أحمد" {...field} />
-                      </FormControl>
+                      <FormLabel className="font-headline">الجنس</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الجنس" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="ذكر">ذكر</SelectItem>
+                          <SelectItem value="أنثى">أنثى</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -119,7 +180,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  <FormField
                   control={form.control}
-                  name="dob"
+                  name="birth_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
                       <FormLabel className="font-headline">تاريخ الميلاد</FormLabel>
@@ -158,24 +219,25 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
+                 <FormField
                   control={form.control}
-                  name="grade"
+                  name="level"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="font-headline">الصف الدراسي</FormLabel>
+                      <FormLabel className="font-headline">المستوى الدراسي</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="اختر الصف" />
+                            <SelectValue placeholder="اختر المستوى" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="level1">المستوى الأول</SelectItem>
-                          <SelectItem value="level2">المستوى الثاني</SelectItem>
-                          <SelectItem value="level3">المستوى الثالث</SelectItem>
-                          <SelectItem value="level4">المستوى الرابع (خاتم)</SelectItem>
+                          <SelectItem value="تحضيري">تحضيري</SelectItem>
+                          <SelectItem value="روضة">روضة</SelectItem>
+                          <SelectItem value="5 سنوات ابتدائي">5 سنوات ابتدائي</SelectItem>
+                          <SelectItem value="4 متوسط">4 متوسط</SelectItem>
+                          <SelectItem value="3 ثانوي">3 ثانوي</SelectItem>
+                          <SelectItem value="جامعي">جامعي</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -185,13 +247,120 @@ export default function RegisterPage() {
               </div>
               
               <FormField
+                  control={form.control}
+                  name="guardian_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-headline">اسم الولي</FormLabel>
+                      <FormControl>
+                        <Input placeholder="مثال: عبدالله أحمد" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <FormField
+                    control={form.control}
+                    name="phone1"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="font-headline">رقم الهاتف 1</FormLabel>
+                        <FormControl>
+                        <Input dir="ltr" placeholder="05XXXXXXXX" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="phone2"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="font-headline">رقم الهاتف 2 (اختياري)</FormLabel>
+                        <FormControl>
+                        <Input dir="ltr" placeholder="05XXXXXXXX" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
+
+               <FormField
                 control={form.control}
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">العنوان</FormLabel>
+                    <FormLabel className="font-headline">مقر السكن</FormLabel>
                     <FormControl>
                       <Input placeholder="مثال: تقسيم الوادي، الشارع الرئيسي" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-headline">الحالة</FormLabel>
+                      <Select onValueChange={(value) => { field.onChange(value); setStatus(value); }} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر الحالة" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="تم الانضمام">تم الانضمام</SelectItem>
+                          <SelectItem value="مؤجل">مؤجل</SelectItem>
+                          <SelectItem value="دخل لمدرسة أخرى">دخل لمدرسة أخرى</SelectItem>
+                           <SelectItem value="رُفِض">رُفِض</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {status === 'تم الانضمام' && (
+                    <FormField
+                    control={form.control}
+                    name="assigned_sheikh"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="font-headline">الشيخ المسؤول</FormLabel>
+                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="اختر الشيخ" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="الشيخ أحمد">الشيخ أحمد</SelectItem>
+                            <SelectItem value="الشيخ خالد">الشيخ خالد</SelectItem>
+                             <SelectItem value="الشيخ علي">الشيخ علي</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                )}
+            </div>
+
+             <FormField
+                control={form.control}
+                name="page_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-headline">رقم الصفحة</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="مثال: 39" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -200,20 +369,19 @@ export default function RegisterPage() {
 
               <FormField
                 control={form.control}
-                name="guardianPhone"
+                name="note"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">رقم هاتف ولي الأمر</FormLabel>
+                    <FormLabel className="font-headline">ملاحظات</FormLabel>
                     <FormControl>
-                      <Input dir="ltr" placeholder="05XXXXXXXX" {...field} />
+                      <Textarea placeholder="أضف ملاحظات هنا..." {...field} />
                     </FormControl>
-                    <FormDescription>
-                      سيتم استخدام هذا الرقم للتواصل بشأن الطالب.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+                />
+
+
               <Button type="submit" size="lg" className="w-full font-headline">
                 إرسال التسجيل
               </Button>

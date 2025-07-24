@@ -1,3 +1,4 @@
+'use client';
 import {
   Table,
   TableBody,
@@ -22,53 +23,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-const students = [
-  {
-    id: 1,
-    name: 'أحمد بن محمد النور',
-    grade: 'المستوى الثالث',
-    fatherName: 'محمد النور',
-    status: 'نشط',
-  },
-  {
-    id: 2,
-    name: 'فاطمة بنت علي الصديق',
-    grade: 'المستوى الثاني',
-    fatherName: 'علي الصديق',
-    status: 'نشط',
-  },
-  {
-    id: 3,
-    name: 'يوسف بن إبراهيم الخليل',
-    grade: 'المستوى الرابع (خاتم)',
-    fatherName: 'إبراهيم الخليل',
-    status: 'متخرج',
-  },
-  {
-    id: 4,
-    name: 'خالد بن سعد الأنصاري',
-    grade: 'المستوى الأول',
-    fatherName: 'سعد الأنصاري',
-    status: 'نشط',
-  },
-  {
-    id: 5,
-    name: 'عائشة بنت عمر الفاروق',
-    grade: 'المستوى الثالث',
-    fatherName: 'عمر الفاروق',
-    status: 'نشط',
-  },
-  {
-    id: 6,
-    name: 'سليمان بن داود الحكيم',
-    grade: 'المستوى الثاني',
-    fatherName: 'داود الحكيم',
-    status: 'منقطع',
-  },
-];
+import { useEffect, useState } from 'react';
+import { getStudents, Student } from '@/services/students';
+import { format } from 'date-fns';
 
 export default function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentsList = await getStudents();
+        setStudents(studentsList);
+      } catch (error) {
+        console.error("Error fetching students: ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
+  const getStatusBadgeVariant = (status: Student['status']) => {
+    switch (status) {
+      case 'تم الانضمام':
+        return 'default';
+      case 'مؤجل':
+        return 'secondary';
+      case 'دخل لمدرسة أخرى':
+        return 'outline';
+      case 'رُفِض':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  };
+
   return (
     <div className="container mx-auto py-12 px-4">
       <Card>
@@ -82,66 +74,69 @@ export default function StudentsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-headline">اسم الطالب</TableHead>
-                <TableHead className="font-headline hidden md:table-cell">اسم الأب</TableHead>
-                <TableHead className="font-headline">المستوى</TableHead>
-                <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
-                <TableHead className="font-headline text-center">إجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">{student.fatherName}</TableCell>
-                  <TableCell>{student.grade}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <Badge
-                      variant={
-                        student.status === 'نشط'
-                          ? 'default'
-                          : student.status === 'متخرج'
-                          ? 'secondary'
-                          : 'destructive'
-                      }
-                      className={
-                        student.status === 'نشط'
-                          ? 'bg-accent text-accent-foreground'
-                          : ''
-                      }
-                    >
-                      {student.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-5 w-5" />
-                          <span className="sr-only">فتح الإجراءات</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="flex gap-2">
-                          <Edit className="h-4 w-4" />
-                          تعديل
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                          <Trash2 className="h-4 w-4" />
-                          حذف
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {loading ? (
+             <p className='text-center'>جارٍ تحميل بيانات الطلبة...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="font-headline">الاسم الكامل</TableHead>
+                  <TableHead className="font-headline hidden md:table-cell">العمر</TableHead>
+                  <TableHead className="font-headline">المستوى</TableHead>
+                  <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
+                  <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
+                  <TableHead className="font-headline text-center">إجراءات</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {students.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell className="font-medium">{student.full_name}</TableCell>
+                    <TableCell className="hidden md:table-cell">{student.age} سنوات</TableCell>
+                    <TableCell>{student.level}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                       <Badge
+                        variant={getStatusBadgeVariant(student.status)}
+                         className={
+                          student.status === 'تم الانضمام'
+                            ? 'bg-accent text-accent-foreground'
+                            : ''
+                        }
+                      >
+                        {student.status}
+                      </Badge>
+                    </TableCell>
+                     <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
+                      {format(student.registration_date.toDate(), 'yyyy-MM-dd')}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-5 w-5" />
+                            <span className="sr-only">فتح الإجراءات</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="flex gap-2">
+                            <Edit className="h-4 w-4" />
+                            تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
