@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Home,
   UserPlus,
@@ -13,11 +13,14 @@ import {
   Menu,
   X,
   PlusCircle,
+  CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 const navLinks = [
   { href: '/', label: 'الصفحة الرئيسية', icon: Home },
@@ -31,7 +34,13 @@ const navLinks = [
 
 export function Header() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState('');
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Set date only on client-side to avoid hydration mismatch
+    setCurrentDate(format(new Date(), 'eeee, d MMMM yyyy', { locale: ar }));
+  }, []);
 
   const NavLink = ({
     href,
@@ -75,12 +84,21 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <Logo />
-          <span className="hidden font-headline text-lg font-bold text-accent sm:inline-block">
-            أكاديمية الشافعي
-          </span>
-        </Link>
+        <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2">
+            <Logo />
+            <span className="hidden font-headline text-lg font-bold text-accent sm:inline-block">
+                أكاديمية الشافعي
+            </span>
+            </Link>
+            {currentDate && (
+                <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                    <CalendarDays className="h-4 w-4" />
+                    <span>{currentDate}</span>
+                </div>
+            )}
+        </div>
+
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1">

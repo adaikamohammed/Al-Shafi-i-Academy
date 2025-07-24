@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart, Users, BookCheck, BarChart3 as BarChartIcon, UserCheck, UserX, Clock, Award } from 'lucide-react';
+import { BarChart, Users, BookCheck, BarChart3 as BarChartIcon, UserCheck, UserX, Clock, Award, User, Group } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -16,9 +16,12 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  Pie,
+  PieChart,
+  Cell,
 } from 'recharts';
 import { useEffect, useState, useMemo } from 'react';
-import { getStudentsRealtime, Student, LEVELS } from '@/services/students';
+import { getStudentsRealtime, Student, LEVELS, SHEIKHS } from '@/services/students';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function StatsPage() {
@@ -50,10 +53,17 @@ export default function StatsPage() {
             { name: 'مؤجل', value: postponed, fill: 'hsl(var(--primary))' },
             { name: 'رُفِض', value: rejected, fill: 'hsl(var(--destructive))' },
         ];
+        
+        const sheikhDistribution = SHEIKHS.map(sheikh => ({
+            name: sheikh,
+            value: students.filter(s => s.assigned_sheikh === sheikh).length,
+        })).filter(item => item.value > 0);
 
 
-        return { totalStudents, joined, postponed, rejected, highReminders, levelDistribution, statusDistribution };
+        return { totalStudents, joined, postponed, rejected, highReminders, levelDistribution, statusDistribution, sheikhDistribution };
     }, [students]);
+    
+    const PIE_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
     if (loading) {
         return (
@@ -75,25 +85,18 @@ export default function StatsPage() {
                         </Card>
                     ))}
                 </div>
-                 <div className="grid md:grid-cols-2 gap-8 mt-8">
-                    <Card>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-1/2" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="w-full h-[350px]" />
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader>
-                            <Skeleton className="h-6 w-1/2" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </CardHeader>
-                        <CardContent>
-                           <Skeleton className="w-full h-[350px]" />
-                        </CardContent>
-                    </Card>
+                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+                    {[...Array(3)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader>
+                                <Skeleton className="h-6 w-1/2" />
+                                <Skeleton className="h-4 w-3/4" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="w-full h-[350px]" />
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </div>
         )
@@ -159,10 +162,10 @@ export default function StatsPage() {
         </Card>
       </div>
 
-      <div className="mt-8 grid md:grid-cols-2 gap-8">
+      <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         <Card>
           <CardHeader>
-            <CardTitle className="font-headline">توزيع الطلاب حسب المستوى</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2"><Group className="h-5 w-5" />توزيع الطلاب حسب المستوى</CardTitle>
             <CardDescription>
               يوضح هذا الرسم البياني عدد الطلاب في كل مستوى دراسي.
             </CardDescription>
@@ -190,7 +193,7 @@ export default function StatsPage() {
 
          <Card>
           <CardHeader>
-            <CardTitle className="font-headline">توزيع الطلاب حسب الحالة</CardTitle>
+            <CardTitle className="font-headline flex items-center gap-2"><User className="h-5 w-5" />توزيع الطلاب حسب الحالة</CardTitle>
             <CardDescription>
               يوضح هذا الرسم البياني توزيع حالات الطلاب.
             </CardDescription>
@@ -213,6 +216,56 @@ export default function StatsPage() {
                 <Bar dataKey="value" name="عدد الطلاب" radius={[4, 4, 0, 0]} />
               </RechartsBarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-headline flex items-center gap-2"><BookCheck className="h-5 w-5" />توزيع الطلاب على الشيوخ</CardTitle>
+            <CardDescription>
+              يوضح هذا الرسم البياني عدد الطلاب لكل شيخ.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                    <Tooltip
+                        cursor={{ fill: 'hsl(var(--primary) / 0.1)' }}
+                        contentStyle={{ 
+                            direction: 'rtl',
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    />
+                    <Pie
+                        data={stats.sheikhDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        labelLine={false}
+                        label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+                            const RADIAN = Math.PI / 180;
+                            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                            return (
+                            <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="font-bold text-sm">
+                                {`${(percent * 100).toFixed(0)}%`}
+                            </text>
+                            );
+                        }}
+                    >
+                        {stats.sheikhDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                    </Pie>
+                    <Legend iconType='circle' />
+                </PieChart>
+             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>

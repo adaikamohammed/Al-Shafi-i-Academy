@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, List, MoreVertical, Search, Filter, X } from 'lucide-react';
+import { Edit, Trash2, List, MoreVertical, Search, Filter, X, Printer, FileDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +57,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import StudentForm from '@/components/student-form';
+import * as XLSX from 'xlsx';
+
 
 type Filters = {
     gender: string;
@@ -130,13 +132,13 @@ export default function StudentsPage() {
   const getStatusRowClass = (status: Student['status']) => {
     switch (status) {
       case 'تم الانضمام':
-        return 'bg-green-100/50 dark:bg-green-900/30';
+        return 'bg-green-100/50 dark:bg-green-900/30 print:bg-green-100';
       case 'مؤجل':
-        return 'bg-yellow-100/50 dark:bg-yellow-900/30';
+        return 'bg-yellow-100/50 dark:bg-yellow-900/30 print:bg-yellow-100';
       case 'رُفِض':
-        return 'bg-red-100/50 dark:bg-red-900/30';
+        return 'bg-red-100/50 dark:bg-red-900/30 print:bg-red-100';
       default:
-        return '';
+        return 'print:bg-white';
     }
   };
   
@@ -182,8 +184,39 @@ export default function StudentsPage() {
     }
   }
 
+  const handlePrint = () => {
+    window.print();
+  }
+
+  const handleExport = () => {
+    const dataToExport = filteredStudents.map(s => ({
+        "الاسم الكامل": s.full_name,
+        "الجنس": s.gender,
+        "العمر": s.age,
+        "المستوى الدراسي": s.level,
+        "اسم الولي": s.guardian_name,
+        "رقم الهاتف": s.phone1,
+        "الحالة": s.status,
+        "الشيخ المسؤول": s.assigned_sheikh || '-',
+        "نقاط التذكير": s.reminder_points,
+        "تاريخ التسجيل": format(s.registration_date, 'yyyy-MM-dd')
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "الطلبة");
+
+    // Enforce RTL direction
+    if(!worksheet['!cols']) worksheet['!cols'] = [];
+     if(!worksheet['!props']) worksheet['!props'] = {};
+     worksheet['!props'].RTL = true;
+
+
+    XLSX.writeFile(workbook, "قائمة_الطلبة.xlsx");
+  }
+
   const FilterSidebar = () => (
-    <Card className="h-fit sticky top-20">
+    <Card className="h-fit sticky top-20 print:hidden">
         <CardHeader>
             <CardTitle className='font-headline text-lg flex items-center gap-2'>
                 <Filter className="h-5 w-5"/>
@@ -253,7 +286,7 @@ export default function StudentsPage() {
   )
 
   return (
-    <div className="container mx-auto py-12 px-4">
+    <div className="container mx-auto py-12 px-4" id="print-area">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             <div className="lg:col-span-1">
                 <FilterSidebar />
@@ -262,22 +295,37 @@ export default function StudentsPage() {
             <div className="lg:col-span-3">
                 <Card>
                     <CardHeader>
-                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
-                        <List className="h-8 w-8 text-primary" />
-                        قائمة الطلبة المسجلين ({filteredStudents.length})
-                    </CardTitle>
-                    <CardDescription>
-                        عرض وإدارة بيانات الطلاب المسجلين في المدرسة.
-                    </CardDescription>
-                    <div className="relative pt-4">
-                        <Input
-                            placeholder="ابحث بالاسم، اسم الولي، أو رقم الصفحة..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 text-base"
-                        />
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    </div>
+                        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+                            <div className='flex-grow'>
+                                <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                                    <List className="h-8 w-8 text-primary" />
+                                    قائمة الطلبة المسجلين ({filteredStudents.length})
+                                </CardTitle>
+                                <CardDescription>
+                                    عرض وإدارة بيانات الطلاب المسجلين في المدرسة.
+                                </CardDescription>
+                            </div>
+                            <div className='flex gap-2 print:hidden'>
+                                <Button variant="outline" onClick={handlePrint}>
+                                    <Printer className="h-4 w-4 ml-2" />
+                                    طباعة
+                                </Button>
+                                <Button variant="outline" onClick={handleExport}>
+                                    <FileDown className="h-4 w-4 ml-2" />
+                                    Excel
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="relative pt-4 print:hidden">
+                            <Input
+                                placeholder="ابحث بالاسم، اسم الولي، أو رقم الصفحة..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 text-base"
+                            />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        </div>
                     </CardHeader>
                     <CardContent>
                     {loading ? (
@@ -292,7 +340,7 @@ export default function StudentsPage() {
                             <TableHead className="font-headline">المستوى</TableHead>
                             <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
                             <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
-                            <TableHead className="font-headline text-center">إجراءات</TableHead>
+                            <TableHead className="font-headline text-center print:hidden">إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -307,7 +355,7 @@ export default function StudentsPage() {
                                 <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
                                 {format(student.registration_date, 'yyyy-MM-dd')}
                                 </TableCell>
-                                <TableCell className="text-center">
+                                <TableCell className="text-center print:hidden">
                                 <AlertDialog>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -384,5 +432,3 @@ export default function StudentsPage() {
     </div>
   );
 }
-
-    
