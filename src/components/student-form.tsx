@@ -55,7 +55,7 @@ const StudentFormSchema = z.object({
 type StudentFormValues = z.infer<typeof StudentFormSchema>;
 
 type StudentFormProps = {
-    onSubmit: (values: Omit<Student, 'id'|'registration_date'>, resetForm: () => void) => Promise<void>;
+    onSubmit: (values: Omit<Student, 'id'|'registration_date'>, resetForm?: () => void) => Promise<void>;
     student?: Student | null;
     submitButtonText?: string;
 }
@@ -125,7 +125,6 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
 
   const handleDateChange = (date: Date | undefined) => {
     if(date) {
-        // form.setValue('birth_date', date); // No need to set value here, watch will trigger
         const calculatedAge = calculateAge(date);
         const calculatedAgeGroup = getAgeGroup(calculatedAge);
         setAge(calculatedAge);
@@ -419,3 +418,5 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
     </Form>
   );
 }
+
+    

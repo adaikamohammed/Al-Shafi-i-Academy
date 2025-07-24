@@ -162,7 +162,7 @@ export default function StudentsPage() {
     setIsEditDialogOpen(true);
   };
   
-  const handleUpdate = async (values: Omit<Student, 'id' | 'registration_date'>, resetForm: () => void) => {
+  const handleUpdate = async (values: Omit<Student, 'id' | 'registration_date'>) => {
     if (!selectedStudent) return;
     try {
         await updateStudent(selectedStudent.id, values);
@@ -372,7 +372,7 @@ export default function StudentsPage() {
             {selectedStudent && (
                 <div className="py-4">
                     <StudentForm 
-                        onSubmit={handleUpdate as any} 
+                        onSubmit={handleUpdate}
                         student={selectedStudent} 
                         submitButtonText="حفظ التغييرات"
                     />
@@ -384,3 +384,5 @@ export default function StudentsPage() {
     </div>
   );
 }
+
+    

@@ -60,10 +60,10 @@ export default function AttendancePage() {
         <CardHeader>
           <CardTitle className="font-headline text-2xl flex items-center gap-3">
             <Users className="h-8 w-8 text-primary" />
-            متابعة حضور الولي
+            متابعة حضور الطالب
           </CardTitle>
           <CardDescription>
-            أدخل اسم الطالب أو رقمه التعريفي للاطلاع على سجل الحضور والغياب.
+            أدخل اسم الطالب أو رقمه التعريفي للاطلاع على سجل الحضور والغياب اليومي.
           </CardDescription>
         </CardHeader>
         <CardContent>

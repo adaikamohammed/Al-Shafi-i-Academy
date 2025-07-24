@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc, where, getDoc, writeBatch } from 'firebase/firestore';
 
 export const LEVELS = ['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'];
 
@@ -54,7 +54,7 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 export const updateStudent = async (studentId: string, studentData: Partial<Omit<Student, 'id'>>) => {
     try {
         const studentDoc = doc(db, 'الطلبة', studentId);
-        const dataToUpdate = { ...studentData };
+        const dataToUpdate: any = { ...studentData };
 
         if (dataToUpdate.birth_date && dataToUpdate.birth_date instanceof Date) {
             dataToUpdate.birth_date = Timestamp.fromDate(dataToUpdate.birth_date);
@@ -92,4 +92,45 @@ export const getStudentsRealtime = (callback: (students: Student[]) => void): Un
     });
 
     return unsubscribe;
+};
+
+export const findStudent = async (searchQuery: string): Promise<Student | null> => {
+    const nameQuery = query(studentsCollection, where('full_name', '==', searchQuery));
+    const phoneQuery = query(studentsCollection, where('phone1', '==', searchQuery));
+    
+    try {
+        let querySnapshot = await getDocs(nameQuery);
+        
+        if (querySnapshot.empty) {
+            querySnapshot = await getDocs(phoneQuery);
+        }
+
+        if (querySnapshot.empty) {
+            return null;
+        }
+
+        const studentDoc = querySnapshot.docs[0];
+        return { id: studentDoc.id, ...studentDoc.data() } as Student;
+
+    } catch (e) {
+        console.error('Error finding student:', e);
+        throw new Error('Could not find student.');
+    }
+}
+
+export const addReminderPoints = async (studentId: string, pointsToAdd: number): Promise<number> => {
+    const studentDocRef = doc(db, 'الطلبة', studentId);
+    try {
+        const studentSnap = await getDoc(studentDocRef);
+        if (!studentSnap.exists()) {
+            throw new Error('Student not found');
+        }
+        const currentPoints = studentSnap.data().reminder_points || 0;
+        const newPoints = currentPoints + pointsToAdd;
+        await updateDoc(studentDocRef, { reminder_points: newPoints });
+        return newPoints;
+    } catch (e) {
+        console.error('Error adding reminder points:', e);
+        throw new Error('Could not add points.');
+    }
 };
