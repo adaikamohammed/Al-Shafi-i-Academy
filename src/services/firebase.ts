@@ -6,12 +6,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "REPLACE_WITH_YOUR_APP_ID"
+  "projectId": "al-shafii-academy",
+  "appId": "1:511272227449:web:ffd5cf84cbe344b88f3aa8",
+  "storageBucket": "al-shafii-academy.firebasestorage.app",
+  "apiKey": "AIzaSyDNA-36d2oodnW9SlreYjmaI_cuDqZzqBI",
+  "authDomain": "al-shafii-academy.firebaseapp.com",
+  "messagingSenderId": "511272227449"
 };
 
 // Initialize Firebase
