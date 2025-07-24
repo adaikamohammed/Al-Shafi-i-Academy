@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy } from 'firebase/firestore';
 
 export interface Student {
   id: string;
@@ -28,7 +28,7 @@ export const addStudent = async (studentData: Omit<Student, 'id'>) => {
     const docRef = await addDoc(studentsCollection, {
         ...studentData,
         birth_date: Timestamp.fromDate(studentData.birth_date as Date),
-        registration_date: Timestamp.fromDate(studentData.registration_date as Date),
+        registration_date: Timestamp.now(),
     });
     return docRef.id;
   } catch (e) {
@@ -39,7 +39,8 @@ export const addStudent = async (studentData: Omit<Student, 'id'>) => {
 
 export const getStudents = async (): Promise<Student[]> => {
   try {
-    const querySnapshot = await getDocs(studentsCollection);
+    const q = query(studentsCollection, orderBy('registration_date', 'desc'));
+    const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...(doc.data() as Omit<Student, 'id' | 'birth_date' | 'registration_date'>),
@@ -54,7 +55,8 @@ export const getStudents = async (): Promise<Student[]> => {
 
 
 export const getStudentsRealtime = (callback: (students: Student[]) => void): Unsubscribe => {
-    const unsubscribe = onSnapshot(studentsCollection, (querySnapshot) => {
+    const q = query(studentsCollection, orderBy('registration_date', 'desc'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const students = querySnapshot.docs.map(doc => ({
             id: doc.id,
             ...(doc.data() as Omit<Student, 'id' | 'birth_date' | 'registration_date'>),

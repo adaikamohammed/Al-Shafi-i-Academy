@@ -50,8 +50,8 @@ const formSchema = z.object({
   }),
   level: z.enum(['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'], { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
   guardian_name: z.string().min(2, 'اسم الأب يجب أن يتكون من حرفين على الأقل.'),
-  phone1: z.string().regex(/^(\+?\d{1,3}[- ]?)?\d{10}$/, 'رقم الهاتف غير صالح.'),
-  phone2: z.string().regex(/^(\+?\d{1,3}[- ]?)?\d{10}$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
+  phone1: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح. يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.'),
+  phone2: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
   address: z.string().min(5, 'العنوان يجب أن يتكون من 5 أحرف على الأقل.'),
   status: z.enum(['تم الانضمام', 'مؤجل', 'دخل لمدرسة أخرى', 'رُفِض'], { required_error: 'الرجاء اختيار الحالة.' }),
   page_number: z.coerce.number().optional(),
@@ -62,6 +62,8 @@ const formSchema = z.object({
 export default function RegisterPage() {
   const { toast } = useToast();
   const [status, setStatus] = useState<string | undefined>();
+  const [age, setAge] = useState<number | null>(null);
+  const [ageGroup, setAgeGroup] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,14 +96,24 @@ export default function RegisterPage() {
     return '14+';
   }
 
+  const handleDateChange = (date: Date | undefined) => {
+    if(date) {
+        form.setValue('birth_date', date);
+        const calculatedAge = calculateAge(date);
+        const calculatedAgeGroup = getAgeGroup(calculatedAge);
+        setAge(calculatedAge);
+        setAgeGroup(calculatedAgeGroup);
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const age = calculateAge(values.birth_date);
-      const age_group = getAgeGroup(age);
+      const calculatedAge = calculateAge(values.birth_date);
+      const age_group = getAgeGroup(calculatedAge);
 
       const studentData: Omit<Student, 'id'> = {
         ...values,
-        age,
+        age: calculatedAge,
         age_group,
         registration_date: new Date(),
         reminder_points: 0,
@@ -116,10 +128,12 @@ export default function RegisterPage() {
       });
       form.reset();
       setStatus(undefined);
+      setAge(null);
+      setAgeGroup(null);
     } catch (error) {
        toast({
         title: 'حدث خطأ!',
-        description: `فشل تسجيل الطالب. الرجاء المحاولة مرة أخرى.`,
+        description: 'فشل تسجيل الطالب. الرجاء المحاولة مرة أخرى.',
         variant: 'destructive',
       });
     }
@@ -177,7 +191,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                  <FormField
                   control={form.control}
                   name="birth_date"
@@ -190,7 +204,7 @@ export default function RegisterPage() {
                             <Button
                               variant={'outline'}
                               className={cn(
-                                'w-full pl-3 text-right font-normal',
+                                'w-full pl-3 text-right font-normal justify-between',
                                 !field.value && 'text-muted-foreground'
                               )}
                             >
@@ -207,7 +221,7 @@ export default function RegisterPage() {
                           <Calendar
                             mode="single"
                             selected={field.value}
-                            onSelect={field.onChange}
+                            onSelect={handleDateChange}
                             disabled={(date) =>
                               date > new Date() || date < new Date('1990-01-01')
                             }
@@ -219,7 +233,17 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <div className="space-y-2 pt-2">
+                    <FormLabel className="font-headline">العمر وفئة العمر</FormLabel>
+                    <div className="flex items-center gap-4 h-10 px-3 py-2 text-sm w-full rounded-md border border-input bg-muted">
+                        <p>العمر: <span className="font-bold">{age ?? '...'}</span></p>
+                        <p className="border-r pr-4">الفئة: <span className="font-bold">{ageGroup ?? '...'}</span></p>
+                    </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <FormField
                   control={form.control}
                   name="level"
                   render={({ field }) => (
@@ -244,9 +268,7 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <FormField
+                <FormField
                   control={form.control}
                   name="guardian_name"
                   render={({ field }) => (
@@ -259,6 +281,7 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <FormField
@@ -268,7 +291,7 @@ export default function RegisterPage() {
                     <FormItem>
                         <FormLabel className="font-headline">رقم الهاتف 1</FormLabel>
                         <FormControl>
-                        <Input dir="ltr" placeholder="05XXXXXXXX" {...field} />
+                        <Input dir="ltr" placeholder="0XXXXXXXXX" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -281,7 +304,7 @@ export default function RegisterPage() {
                     <FormItem>
                         <FormLabel className="font-headline">رقم الهاتف 2 (اختياري)</FormLabel>
                         <FormControl>
-                        <Input dir="ltr" placeholder="05XXXXXXXX" {...field} />
+                        <Input dir="ltr" placeholder="0XXXXXXXXX" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -363,10 +386,13 @@ export default function RegisterPage() {
                 name="page_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-headline">رقم الصفحة</FormLabel>
+                    <FormLabel className="font-headline">رقم الصفحة (حفظ)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="مثال: 39" {...field} />
                     </FormControl>
+                     <FormDescription>
+                       آخر صفحة وصل إليها الطالب في الحفظ.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -385,7 +411,6 @@ export default function RegisterPage() {
                   </FormItem>
                 )}
                 />
-
 
               <Button type="submit" size="lg" className="w-full font-headline bg-accent text-accent-foreground hover:bg-accent/90">
                 تسجيل الطالب
