@@ -1,6 +1,20 @@
 import { db } from './firebase';
 import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
+export const LEVELS = ['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'];
+
+export const SHEIKHS = [
+    "الشيخ إبراهيم مراد",
+    "الشيخ عبد القادر",
+    "الشيخ زياد درويش",
+    "الشيخ أحمد بن عمر",
+    "الشيخ فؤاد بن عمر",
+    "الشيخ صهيب نصيب",
+    "الشيخ سفيان نصيرة",
+    "الشيخ عبد الحق نصيرة"
+];
+
+
 export interface Student {
   id: string;
   full_name: string;

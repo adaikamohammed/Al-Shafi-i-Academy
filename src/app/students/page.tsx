@@ -15,18 +15,27 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, List, MoreVertical } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Edit, Trash2, List, MoreVertical, Search, Filter, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useEffect, useState } from 'react';
-import { getStudentsRealtime, Student, deleteStudent, updateStudent } from '@/services/students';
+import { useEffect, useState, useMemo } from 'react';
+import { getStudentsRealtime, Student, deleteStudent, updateStudent, SHEIKHS, LEVELS } from '@/services/students';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 
 import {
   Dialog,
@@ -34,8 +43,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -50,6 +57,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import StudentForm from '@/components/student-form';
 
+type Filters = {
+    gender: string;
+    status: string;
+    level: string;
+    assigned_sheikh: string;
+}
+
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +71,14 @@ export default function StudentsPage() {
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState<Filters>({
+    gender: 'الكل',
+    status: 'الكل',
+    level: 'الكل',
+    assigned_sheikh: 'الكل',
+  });
 
   useEffect(() => {
     const unsubscribe = getStudentsRealtime((studentsList) => {
@@ -72,18 +94,48 @@ export default function StudentsPage() {
     return () => unsubscribe();
   }, []);
 
-  const getStatusBadgeVariant = (status: Student['status']) => {
+  const handleFilterChange = (filterName: keyof Filters, value: string) => {
+    setFilters(prev => ({...prev, [filterName]: value}));
+  }
+
+  const resetFilters = () => {
+    setFilters({
+        gender: 'الكل',
+        status: 'الكل',
+        level: 'الكل',
+        assigned_sheikh: 'الكل',
+    });
+    setSearchQuery('');
+  }
+
+  const filteredStudents = useMemo(() => {
+    return students.filter(student => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = searchQuery === '' ||
+            student.full_name.toLowerCase().includes(searchLower) ||
+            student.guardian_name.toLowerCase().includes(searchLower) ||
+            (student.page_number && student.page_number.toString().includes(searchLower));
+
+        const matchesFilters = 
+            (filters.gender === 'الكل' || student.gender === filters.gender) &&
+            (filters.status === 'الكل' || student.status === filters.status) &&
+            (filters.level === 'الكل' || student.level === filters.level) &&
+            (filters.assigned_sheikh === 'الكل' || student.assigned_sheikh === filters.assigned_sheikh);
+        
+        return matchesSearch && matchesFilters;
+    })
+  }, [students, searchQuery, filters]);
+
+  const getStatusRowClass = (status: Student['status']) => {
     switch (status) {
       case 'تم الانضمام':
-        return 'default';
+        return 'bg-green-100/50 dark:bg-green-900/30';
       case 'مؤجل':
-        return 'secondary';
-      case 'دخل لمدرسة أخرى':
-        return 'outline';
+        return 'bg-yellow-100/50 dark:bg-yellow-900/30';
       case 'رُفِض':
-        return 'destructive';
+        return 'bg-red-100/50 dark:bg-red-900/30';
       default:
-        return 'default';
+        return '';
     }
   };
   
@@ -129,106 +181,190 @@ export default function StudentsPage() {
     }
   }
 
+  const FilterSidebar = () => (
+    <Card className="h-fit sticky top-20">
+        <CardHeader>
+            <CardTitle className='font-headline text-lg flex items-center gap-2'>
+                <Filter className="h-5 w-5"/>
+                تصفية النتائج
+            </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="gender-filter">الجنس</Label>
+                <Select value={filters.gender} onValueChange={(value) => handleFilterChange('gender', value)}>
+                    <SelectTrigger id="gender-filter">
+                        <SelectValue placeholder="اختر الجنس" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="الكل">الكل</SelectItem>
+                        <SelectItem value="ذكر">ذكر</SelectItem>
+                        <SelectItem value="أنثى">أنثى</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="status-filter">الحالة</Label>
+                <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
+                    <SelectTrigger id="status-filter">
+                        <SelectValue placeholder="اختر الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                         <SelectItem value="الكل">الكل</SelectItem>
+                         <SelectItem value="تم الانضمام">تم الانضمام</SelectItem>
+                         <SelectItem value="مؤجل">مؤجل</SelectItem>
+                         <SelectItem value="دخل لمدرسة أخرى">دخل لمدرسة أخرى</SelectItem>
+                         <SelectItem value="رُفِض">رُفِض</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="level-filter">المستوى الدراسي</Label>
+                <Select value={filters.level} onValueChange={(value) => handleFilterChange('level', value)}>
+                    <SelectTrigger id="level-filter">
+                        <SelectValue placeholder="اختر المستوى" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="الكل">الكل</SelectItem>
+                        {LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="sheikh-filter">الشيخ المسؤول</Label>
+                <Select value={filters.assigned_sheikh} onValueChange={(value) => handleFilterChange('assigned_sheikh', value)}>
+                    <SelectTrigger id="sheikh-filter">
+                        <SelectValue placeholder="اختر الشيخ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="الكل">الكل</SelectItem>
+                        {SHEIKHS.map(sheikh => <SelectItem key={sheikh} value={sheikh}>{sheikh}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <Separator />
+            <Button variant="ghost" className='w-full' onClick={resetFilters}>
+                <X className="h-4 w-4 ml-2" />
+                إعادة تعيين الفلاتر
+            </Button>
+        </CardContent>
+    </Card>
+  )
+
   return (
     <div className="container mx-auto py-12 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline text-2xl flex items-center gap-3">
-            <List className="h-8 w-8 text-primary" />
-            قائمة الطلبة المسجلين
-          </CardTitle>
-          <CardDescription>
-            عرض وإدارة بيانات الطلاب المسجلين في المدرسة.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-             <p className='text-center'>جارٍ تحميل بيانات الطلبة...</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-headline">الاسم الكامل</TableHead>
-                  <TableHead className="font-headline hidden md:table-cell">العمر</TableHead>
-                  <TableHead className="font-headline">المستوى</TableHead>
-                  <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
-                  <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
-                  <TableHead className="font-headline text-center">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.full_name}</TableCell>
-                    <TableCell className="hidden md:table-cell">{student.age} سنوات</TableCell>
-                    <TableCell>{student.level}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                       <Badge
-                        variant={getStatusBadgeVariant(student.status)}
-                         className={
-                          student.status === 'تم الانضمام'
-                            ? 'bg-accent text-accent-foreground'
-                            : ''
-                        }
-                      >
-                        {student.status}
-                      </Badge>
-                    </TableCell>
-                     <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
-                      {format(student.registration_date, 'yyyy-MM-dd')}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-5 w-5" />
-                            <span className="sr-only">فتح الإجراءات</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
-                            <Edit className="h-4 w-4" />
-                            تعديل
-                          </DropdownMenuItem>
-                          
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
-                                    <Trash2 className="h-4 w-4" />
-                                    حذف
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف سجل الطالب بشكل دائم من خوادمنا.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(student.id)}>متابعة</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                            </AlertDialog>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+            <div className="lg:col-span-1">
+                <FilterSidebar />
+            </div>
 
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+            <div className="lg:col-span-3">
+                <Card>
+                    <CardHeader>
+                    <CardTitle className="font-headline text-2xl flex items-center gap-3">
+                        <List className="h-8 w-8 text-primary" />
+                        قائمة الطلبة المسجلين ({filteredStudents.length})
+                    </CardTitle>
+                    <CardDescription>
+                        عرض وإدارة بيانات الطلاب المسجلين في المدرسة.
+                    </CardDescription>
+                    <div className="relative pt-4">
+                        <Input
+                            placeholder="ابحث بالاسم، اسم الولي، أو رقم الصفحة..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 text-base"
+                        />
+                        <Search className="absolute left-3 top-1/2 h-5 w-5 text-muted-foreground" />
+                    </div>
+                    </CardHeader>
+                    <CardContent>
+                    {loading ? (
+                        <p className='text-center py-8'>جارٍ تحميل بيانات الطلبة...</p>
+                    ) : (
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead className="font-headline">الاسم الكامل</TableHead>
+                            <TableHead className="font-headline hidden md:table-cell">العمر</TableHead>
+                            <TableHead className="font-headline">المستوى</TableHead>
+                            <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
+                            <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
+                            <TableHead className="font-headline text-center">إجراءات</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredStudents.length > 0 ? filteredStudents.map((student) => (
+                            <TableRow key={student.id} className={getStatusRowClass(student.status)}>
+                                <TableCell className="font-medium">{student.full_name}</TableCell>
+                                <TableCell className="hidden md:table-cell">{student.age} سنوات</TableCell>
+                                <TableCell>{student.level}</TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                    {student.status}
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
+                                {format(student.registration_date, 'yyyy-MM-dd')}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                        <MoreVertical className="h-5 w-5" />
+                                        <span className="sr-only">فتح الإجراءات</span>
+                                    </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                    <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
+                                        <Edit className="h-4 w-4" />
+                                        عرض التفاصيل والتعديل
+                                    </DropdownMenuItem>
+                                    
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex gap-2 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                <Trash2 className="h-4 w-4" />
+                                                حذف
+                                            </DropdownMenuItem>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>هل أنت متأكد تمامًا؟</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                هذا الإجراء لا يمكن التراجع عنه. سيؤدي هذا إلى حذف سجل الطالب بشكل دائم من خوادمنا.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(student.id)}>متابعة</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                        </AlertDialog>
+
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center h-24">
+                                        لا توجد نتائج مطابقة للبحث أو الفلاتر المحددة.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                        </Table>
+                    )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl">
             <DialogHeader>
-            <DialogTitle className='font-headline'>تعديل بيانات الطالب</DialogTitle>
+            <DialogTitle className='font-headline'>عرض وتعديل بيانات الطالب</DialogTitle>
             <DialogDescription>
-                قم بتحديث الحقول أدناه لحفظ التغييرات.
+                يمكنك عرض وتحديث بيانات الطالب من هنا. اضغط على "حفظ التغييرات" عند الانتهاء.
             </DialogDescription>
             </DialogHeader>
             {selectedStudent && (
