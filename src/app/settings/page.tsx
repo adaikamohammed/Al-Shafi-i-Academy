@@ -1,3 +1,4 @@
+'use client';
 import {
   Card,
   CardContent,
@@ -6,11 +7,32 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, Palette, Bell } from 'lucide-react';
+import { Settings as SettingsIcon, Palette, Bell, Text } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { useEffect, useState } from 'react';
 
 export default function SettingsPage() {
+    const [fontSize, setFontSize] = useState(16);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const storedFontSize = localStorage.getItem('font-size');
+        if (storedFontSize) {
+            const size = parseInt(storedFontSize, 10);
+            setFontSize(size);
+            root.style.fontSize = `${size}px`;
+        }
+    }, []);
+
+    const handleFontSizeChange = (value: number[]) => {
+        const newSize = value[0];
+        setFontSize(newSize);
+        document.documentElement.style.fontSize = `${newSize}px`;
+        localStorage.setItem('font-size', newSize.toString());
+    };
+
   return (
     <div className="container mx-auto py-12 px-4">
       <div className="max-w-3xl mx-auto">
@@ -34,7 +56,7 @@ export default function SettingsPage() {
                 تخصيص مظهر الموقع ليناسب تفضيلاتك.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="dark-mode" className="flex flex-col space-y-1">
                 <span className="font-headline">الوضع الداكن</span>
@@ -44,6 +66,31 @@ export default function SettingsPage() {
               </Label>
               <Switch id="dark-mode" aria-label="Toggle dark mode" />
             </div>
+
+            <Separator />
+
+             <div className="space-y-4">
+               <Label htmlFor="font-size" className="flex flex-col space-y-1">
+                <span className="font-headline flex items-center gap-2"><Text className="h-4 w-4" />حجم الخط</span>
+                <span className="font-normal leading-snug text-muted-foreground">
+                  تحكم في حجم الخط العام للتطبيق.
+                </span>
+              </Label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs">صغير</span>
+                <Slider
+                    id="font-size"
+                    min={12}
+                    max={22}
+                    step={1}
+                    value={[fontSize]}
+                    onValueChange={handleFontSizeChange}
+                    className="flex-1"
+                />
+                <span className="text-xl">كبير</span>
+              </div>
+            </div>
+
           </CardContent>
         </Card>
 
@@ -58,7 +105,7 @@ export default function SettingsPage() {
             <CardDescription>
                 إدارة تفضيلات الإشعارات الخاصة بك.
             </CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent className="space-y-4">
              <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="announcement-notifications" className="flex flex-col space-y-1">

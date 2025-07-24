@@ -87,5 +87,6 @@
   }
   html {
     direction: rtl;
+    font-size: 16px; /* Default font size */
   }
 }
