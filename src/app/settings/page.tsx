@@ -105,7 +105,7 @@ export default function SettingsPage() {
             <CardDescription>
                 إدارة تفضيلات الإشعارات الخاصة بك.
             </CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent className="space-y-4">
              <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="announcement-notifications" className="flex flex-col space-y-1">
