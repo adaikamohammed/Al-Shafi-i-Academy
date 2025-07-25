@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-  Home,
+  LayoutDashboard,
   UserPlus,
   List,
   BarChart3,
@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 const navLinks = [
-  { href: '/', label: 'الصفحة الرئيسية', icon: Home },
+  { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/register', label: 'تسجيل طالب جديد', icon: UserPlus },
   { href: '/students', label: 'قائمة الطلبة', icon: List },
   { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },

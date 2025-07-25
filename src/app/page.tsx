@@ -1,109 +1,229 @@
+'use client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { BookOpen, Target, Users, Megaphone } from 'lucide-react';
-import Image from 'next/image';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Users,
+  UserCheck,
+  UserPlus,
+  List,
+  LayoutDashboard,
+  Clock,
+  UserX,
+  ArrowLeft,
+} from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  getStudentsRealtime,
+  Student,
+} from '@/services/students';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Bar,
+  BarChart as RechartsBarChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from 'recharts';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
 
-export default function Home() {
+export default function DashboardPage() {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = getStudentsRealtime((studentsList) => {
+        const formattedStudents = studentsList.map(s => ({
+            ...s,
+            registration_date: s.registration_date instanceof Date ? s.registration_date : (s.registration_date as any).toDate(),
+          }))
+      setStudents(formattedStudents);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalStudents = students.length;
+    const joined = students.filter((s) => s.status === 'تم الانضمام').length;
+    const postponed = students.filter((s) => s.status === 'مؤجل').length;
+    const rejected = students.filter((s) => s.status === 'رُفِض').length;
+    const latestStudents = students.slice(0, 5);
+
+    const statusDistribution = [
+      { name: 'تم الانضمام', value: joined, fill: 'hsl(var(--accent))' },
+      { name: 'مؤجل', value: postponed, fill: 'hsl(var(--primary))' },
+      { name: 'رُفِض', value: rejected, fill: 'hsl(var(--destructive))' },
+    ];
+
+    return { totalStudents, joined, postponed, rejected, latestStudents, statusDistribution };
+  }, [students]);
+
+  const StatCard = ({ title, value, icon: Icon, description, colorClass }: any) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium font-headline">{title}</CardTitle>
+        <Icon className={`h-5 w-5 ${colorClass || 'text-primary'}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </CardContent>
+    </Card>
+  );
+
+   if (loading) {
+        return (
+            <div className="container mx-auto py-12 px-4">
+                 <div className="flex flex-col gap-4 mb-8">
+                    <Skeleton className="h-10 w-64" />
+                    <Skeleton className="h-4 w-96" />
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    {[...Array(4)].map((_, i) => (
+                        <Card key={i}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-5 w-5 rounded-full" />
+                            </CardHeader>
+                            <CardContent>
+                                <Skeleton className="h-7 w-12" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                 <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
+                    <Card className="lg:col-span-3">
+                        <CardHeader>
+                            <Skeleton className="h-6 w-1/2" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="w-full h-[350px]" />
+                        </CardContent>
+                    </Card>
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <Skeleton className="h-6 w-1/2" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="w-full h-[350px]" />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
   return (
-    <div className="flex flex-col items-center">
-      <section className="w-full bg-primary/10 py-20 md:py-32">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="font-headline text-4xl font-bold tracking-tight text-primary md:text-6xl">
-            المدرسة القرآنية للإمام الشافعي
-          </h1>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80 md:text-xl">
-            صرح تعليمي متميز لتربية الأجيال على هدي القرآن الكريم والسنة النبوية الشريفة.
-          </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <Button asChild size="lg" className="font-headline">
-              <Link href="/register">تسجيل طالب جديد</Link>
+    <div className="container mx-auto py-12 px-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 className="font-headline text-3xl font-bold flex items-center gap-3">
+                <LayoutDashboard className="h-8 w-8 text-primary" />
+                لوحة التحكم
+            </h1>
+            <p className="text-muted-foreground">
+                نظرة شاملة على نشاط المدرسة والطلاب.
+            </p>
+        </div>
+        <div className="flex gap-2">
+            <Button asChild className="font-headline" size="lg">
+                <Link href="/register"><UserPlus />تسجيل طالب جديد</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="font-headline">
-              <Link href="/students">قائمة الطلبة</Link>
+            <Button asChild className="font-headline" variant="outline" size="lg">
+                <Link href="/students"><List />عرض كل الطلبة</Link>
             </Button>
-          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="w-full py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <h2 className="text-center font-headline text-3xl font-bold text-accent">
-            قيمنا ومبادئنا
-          </h2>
-          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <BookOpen className="h-8 w-8" />
-                </div>
-                <CardTitle className="font-headline mt-4">تعليم قرآني متقن</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>نعتني بتحفيظ القرآن الكريم مع التجويد والفهم الصحيح لمعانيه.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Target className="h-8 w-8" />
-                </div>
-                <CardTitle className="font-headline mt-4">تربية إيمانية</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>نغرس في نفوس طلابنا القيم الإسلامية والأخلاق الحميدة.</p>
-              </CardContent>
-            </Card>
-            <Card className="text-center">
-              <CardHeader>
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Users className="h-8 w-8" />
-                </div>
-                <CardTitle className="font-headline mt-4">بيئة تعليمية محفزة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>نوفر بيئة آمنة وداعمة تشجع على الإبداع والتفوق الدراسي.</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+         <StatCard title="إجمالي الطلاب" value={stats.totalStudents} icon={Users} />
+         <StatCard title="المنضمون" value={stats.joined} icon={UserCheck} colorClass="text-accent" />
+         <StatCard title="المؤجلون" value={postponed} icon={Clock} colorClass="text-yellow-500" />
+         <StatCard title="المرفوضون" value={rejected} icon={UserX} colorClass="text-destructive" />
+      </div>
 
-      <Separator className="my-12 w-2/3" />
+       <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
+            <Card className="lg:col-span-3">
+                <CardHeader>
+                    <CardTitle className="font-headline">آخر الطلاب المسجلين</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead className="font-headline">الاسم الكامل</TableHead>
+                            <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
+                            <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
+                             <TableHead className="font-headline text-left">الشيخ</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {stats.latestStudents.map((student) => (
+                            <TableRow key={student.id}>
+                                <TableCell className="font-medium">{student.full_name}</TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                    <Badge variant={student.status === 'تم الانضمام' ? 'default' : student.status === 'مؤجل' ? 'secondary' : 'destructive'}
+                                     className={
+                                        student.status === 'تم الانضمام' ? 'bg-accent text-accent-foreground' : ''
+                                     }>
+                                        {student.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
+                                {format(student.registration_date, 'yyyy-MM-dd')}
+                                </TableCell>
+                                <TableCell className="text-left">{student.assigned_sheikh || '-'}</TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                        </Table>
+                </CardContent>
+            </Card>
 
-      <section className="w-full pb-16 md:pb-24">
-        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h2 className="font-headline text-3xl font-bold text-accent flex items-center gap-3">
-              <Megaphone className="h-8 w-8" />
-              آخر الإعلانات
-            </h2>
-            <div className="mt-6 space-y-4">
-              <div className="p-4 border-r-4 border-primary bg-card rounded-md">
-                <h3 className="font-headline font-bold"> بدء التسجيل للعام الدراسي الجديد</h3>
-                <p className="text-sm text-muted-foreground">1 أغسطس 2024</p>
-                <p className="mt-2">تعلن المدرسة عن فتح باب التسجيل للعام الدراسي القادم. الأماكن محدودة.</p>
-              </div>
-              <div className="p-4 border-r-4 border-primary bg-card rounded-md">
-                <h3 className="font-headline font-bold">مسابقة الحفظ السنوية</h3>
-                <p className="text-sm text-muted-foreground">15 سبتمبر 2024</p>
-                <p className="mt-2">استعدوا لمسابقة الحفظ السنوية بجوائز قيمة للمتفوقين.</p>
-              </div>
-            </div>
-          </div>
-          <div>
-            <h2 className="font-headline text-3xl font-bold text-accent mb-6">
-              من أجواء المدرسة
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <Image src="https://placehold.co/600x400.png" alt="طلاب في الفصل" width={600} height={400} className="rounded-lg shadow-md" data-ai-hint="students classroom" />
-              <Image src="https://placehold.co/600x400.png" alt="نشاط مدرسي" width={600} height={400} className="rounded-lg shadow-md" data-ai-hint="school activity" />
-              <Image src="https://placehold.co/600x400.png" alt="فناء المدرسة" width={600} height={400} className="rounded-lg shadow-md col-span-2" data-ai-hint="school yard" />
-            </div>
-          </div>
-        </div>
-      </section>
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle className="font-headline">توزيع حالات الطلاب</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ResponsiveContainer width="100%" height={300}>
+                        <RechartsBarChart data={stats.statusDistribution} layout="vertical" dir="rtl" margin={{ right: 20, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" allowDecimals={false} />
+                        <YAxis dataKey="name" type="category" width={80} />
+                        <Tooltip
+                            cursor={{ fill: 'hsl(var(--primary) / 0.1)' }}
+                            contentStyle={{ 
+                            direction: 'rtl',
+                            backgroundColor: 'hsl(var(--background))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: 'var(--radius)'
+                            }}
+                        />
+                        <Bar dataKey="value" name="عدد الطلاب" radius={[0, 4, 4, 0]} />
+                        </RechartsBarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+      </div>
+
     </div>
   );
 }
