@@ -16,6 +16,7 @@ import {
   CalendarDays,
   LogOut,
   Upload,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -31,6 +32,7 @@ const navLinks = [
   { href: '/students', label: 'قائمة الطلبة', icon: List },
   { href: '/import', label: 'استيراد طلبة', icon: Upload },
   { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },
+  { href: '/reports', label: 'التقارير', icon: FileText },
   { href: '/attendance', label: 'حضور الولي', icon: Users },
   { href: '/points', label: 'نقاط الحضور', icon: PlusCircle },
   { href: '/settings', label: 'الإعدادات', icon: Settings },

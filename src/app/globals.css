@@ -91,6 +91,40 @@
   }
 }
 
+.react-tabs__tab-list {
+    border-bottom: 1px solid hsl(var(--border));
+    margin: 0 0 1rem;
+    padding: 0;
+}
+
+.react-tabs__tab {
+    display: inline-block;
+    border: 1px solid transparent;
+    border-bottom: none;
+    bottom: -1px;
+    position: relative;
+    list-style: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.react-tabs__tab--selected {
+    background: hsl(var(--background));
+    border-color: hsl(var(--border));
+    border-bottom: 1px solid hsl(var(--background));
+    color: hsl(var(--primary));
+    font-weight: bold;
+}
+
+.react-tabs__tab:focus {
+    box-shadow: 0 0 5px hsl(var(--primary));
+    border-color: hsl(var(--primary));
+    outline: none;
+}
+
+
 @media print {
   @page {
     size: A4 landscape;
