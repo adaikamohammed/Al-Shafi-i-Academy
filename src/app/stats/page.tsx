@@ -56,6 +56,11 @@ export default function StatsPage() {
             'دخل لمدرسة أخرى': 'hsl(var(--muted-foreground))',
         };
 
+        const joined = students.filter(s => s.status === 'تم الانضمام').length;
+        const postponed = students.filter(s => s.status === 'مؤجل').length;
+        const rejected = students.filter(s => s.status === 'مرفوض').length;
+        const moved = students.filter(s => s.status === 'دخل لمدرسة أخرى').length;
+
         const statusDistribution = statuses.map(status => ({
             name: status,
             value: students.filter(s => s.status === status).length,
@@ -66,11 +71,6 @@ export default function StatsPage() {
             name: sheikh,
             value: students.filter(s => s.assigned_sheikh === sheikh).length,
         })).filter(item => item.value > 0);
-
-        const joined = statusDistribution.find(s => s.name === 'تم الانضمام')?.value || 0;
-        const postponed = statusDistribution.find(s => s.name === 'مؤجل')?.value || 0;
-        const rejected = statusDistribution.find(s => s.name === 'مرفوض')?.value || 0;
-        const moved = statusDistribution.find(s => s.name === 'دخل لمدرسة أخرى')?.value || 0;
 
         return { totalStudents, joined, postponed, rejected, moved, highReminders, levelDistribution, statusDistribution, sheikhDistribution };
     }, [students]);
