@@ -15,13 +15,16 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, List, MoreVertical, Search, Filter, X, Printer, FileDown, Star } from 'lucide-react';
+import { Edit, Trash2, List, MoreVertical, Search, Filter, X, Printer, FileDown, Star, ChevronDown, Upload } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { useEffect, useState, useMemo } from 'react';
 import { getStudentsRealtime, Student, deleteStudent, updateStudent, SHEIKHS, LEVELS } from '@/services/students';
@@ -84,6 +87,7 @@ export default function StudentsPage() {
     level: 'الكل',
     assigned_sheikh: 'الكل',
   });
+  const [exportCategory, setExportCategory] = useState('الكل');
 
   useEffect(() => {
     if (!user?.uid) {
@@ -195,11 +199,25 @@ export default function StudentsPage() {
   const handlePrint = () => {
     window.print();
   }
+  
+  const handleExportFullData = () => {
+    const studentsToExport = exportCategory === 'الكل'
+        ? filteredStudents
+        : filteredStudents.filter(s => s.status === exportCategory);
+    
+    if(studentsToExport.length === 0){
+         toast({
+            title: 'لا توجد بيانات للتصدير',
+            description: 'لا يوجد طلاب يطابقون الفئة المحددة.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
-  const handleExport = () => {
-    const dataToExport = filteredStudents.map(s => ({
+    const dataToExport = studentsToExport.map(s => ({
         "الاسم الكامل": s.full_name,
         "الجنس": s.gender,
+        "تاريخ الميلاد": format(s.birth_date, 'yyyy-MM-dd'),
         "العمر": s.age,
         "المستوى الدراسي": s.level,
         "اسم الولي": s.guardian_name,
@@ -209,22 +227,44 @@ export default function StudentsPage() {
         "رقم الصفحة": s.page_number,
         "تاريخ التسجيل": format(s.registration_date, 'yyyy-MM-dd'),
         "الحالة": s.status,
-        "الملاحظات": s.note || '-',
         "الشيخ المسؤول": s.assigned_sheikh || '-',
-        "نقاط التذكير": s.reminder_points,
+        "نقاط التذكير": s.reminder_points || 0,
+        "الملاحظات": s.note || '-',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "الطلبة");
-
-    if(!worksheet['!cols']) worksheet['!cols'] = [];
-     if(!worksheet['!props']) worksheet['!props'] = {};
+    if(!worksheet['!props']) worksheet['!props'] = {};
      worksheet['!props'].RTL = true;
-
-
-    XLSX.writeFile(workbook, "قائمة_الطلبة.xlsx");
+    XLSX.writeFile(workbook, `بيانات_الطلبة_الكاملة_${exportCategory}.xlsx`);
+    toast({ title: 'تم تصدير الملف بنجاح ✅' });
   }
+
+  const handleExportTemplate = () => {
+     const dataToExport = filteredStudents.map(s => ({
+        "الاسم الكامل": s.full_name,
+        "الجنس": s.gender,
+        "تاريخ الميلاد": format(s.birth_date, 'dd/MM/yyyy'),
+        "المستوى الدراسي": s.level,
+        "اسم الولي": s.guardian_name,
+        "رقم الهاتف 1": s.phone1,
+        "رقم الهاتف 2": s.phone2 || '',
+        "مقر السكن": s.address,
+        "الحالة": s.status,
+        "رقم الصفحة": s.page_number || '',
+        "ملاحظات": s.note || '',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "نموذج التسجيل");
+    if(!worksheet['!props']) worksheet['!props'] = {};
+     worksheet['!props'].RTL = true;
+    XLSX.writeFile(workbook, "نموذج_تسجيل_الطلبة.xlsx");
+     toast({ title: 'تم تصدير الملف بنجاح ✅' });
+  }
+
 
   const FilterSidebar = () => (
     <Card className="h-fit sticky top-20 print:hidden">
@@ -316,14 +356,40 @@ export default function StudentsPage() {
                                     عرض وإدارة بيانات الطلاب المسجلين في المدرسة.
                                 </CardDescription>
                             </div>
-                            <div className='flex gap-2 print:hidden'>
+                            <div className='flex flex-wrap gap-2 print:hidden'>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button>
+                                            <Upload className="h-4 w-4 ml-2"/>
+                                             📤 تصدير كامل البيانات
+                                            <ChevronDown className="h-4 w-4 mr-2"/>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuLabel>اختر فئة للتصدير</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuRadioGroup value={exportCategory} onValueChange={setExportCategory}>
+                                            <DropdownMenuRadioItem value="الكل">الكل</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="تم الانضمام">تم الانضمام</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="مؤجل">مؤجل</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="مرفوض">مرفوض</DropdownMenuRadioItem>
+                                            <DropdownMenuRadioItem value="دخل لمدرسة أخرى">دخل لمدرسة أخرى</DropdownMenuRadioItem>
+                                        </DropdownMenuRadioGroup>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onSelect={handleExportFullData} className="bg-accent text-accent-foreground focus:bg-accent/90">
+                                            تأكيد التصدير
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+
+                                <Button variant="outline" onClick={handleExportTemplate}>
+                                    <FileDown className="h-4 w-4 ml-2" />
+                                     📄 تصدير نموذج التسجيل
+                                </Button>
+
                                 <Button variant="outline" onClick={handlePrint}>
                                     <Printer className="h-4 w-4 ml-2" />
                                     طباعة / PDF
-                                </Button>
-                                <Button variant="outline" onClick={handleExport}>
-                                    <FileDown className="h-4 w-4 ml-2" />
-                                    Excel
                                 </Button>
                             </div>
                         </div>
