@@ -58,7 +58,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user, loading, pathname, router]);
 
-
   const login = (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
@@ -73,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     login,
     logout,
   };
-
+  
   if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -83,12 +82,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   // Render children for auth pages, or the full layout for protected pages
-  if (!user && pathname === '/login') {
+  if (pathname === '/login') {
      return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
   }
 
-  if(!user) {
-    return null;
+  if (!user) {
+    // This will be caught by the useEffect above and redirected, so we can return a loader or null
+    return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <div className="text-2xl font-headline">جار التحميل...</div>
+        </div>
+    )
   }
 
   return (

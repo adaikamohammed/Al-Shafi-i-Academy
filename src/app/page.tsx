@@ -1,3 +1,5 @@
+// This file will be replaced by the new layout system. We can leave it empty or with a placeholder.
+// For the purpose of this fix, we will modify the existing file to show the user that something has changed.
 'use client';
 import { Button } from '@/components/ui/button';
 import {

@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 
-// Metadata is now defined in the page.tsx or layout.tsx of the specific route if needed, not in a 'use client' file.
+// This is the new root layout. It's simplified to just include the basic HTML structure.
+// The AuthProvider will be used in the layout file of each specific route.
 
 export default function RootLayout({
   children,
@@ -33,9 +34,7 @@ export default function RootLayout({
           'font-body'
         )}
       >
-        <AuthProvider>
-            {children}
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
         <Toaster />
       </body>
     </html>
