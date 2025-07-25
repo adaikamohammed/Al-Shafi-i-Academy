@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 const REQUIRED_HEADERS = [
     "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
     "اسم الولي", "رقم الهاتف 1", "رقم الهاتف 2", "مقر السكن",
-    "تاريخ التسجيل", "الحالة", "رقم الصفحة", "ملاحظات"
+    "الحالة", "رقم الصفحة", "ملاحظات"
 ];
 
 // Type for the raw data read from Excel
@@ -163,15 +163,6 @@ export default function ImportPage() {
                              error: `تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}. القيمة المدخلة: '${birthDateRaw}'`
                         }; 
                     }
-
-                    const registrationDateRaw = row[headerIndex["تاريخ التسجيل"]];
-                    const registrationDate = parseDate(registrationDateRaw);
-                     if (!registrationDate) {
-                         return { 
-                             full_name: fullName, 
-                             error: `تاريخ تسجيل غير صالح في الصف ${rowIndex + 2}. القيمة المدخلة: '${registrationDateRaw}'`
-                        }; 
-                    }
                     
                     return {
                         full_name: fullName,
@@ -182,7 +173,7 @@ export default function ImportPage() {
                         phone1: String(row[headerIndex["رقم الهاتف 1"]] || ''),
                         phone2: String(row[headerIndex["رقم الهاتف 2"]] || ''),
                         address: row[headerIndex["مقر السكن"]],
-                        registration_date: registrationDate,
+                        registration_date: new Date(), // Set registration date to now
                         status: row[headerIndex["الحالة"]],
                         page_number: Number(row[headerIndex["رقم الصفحة"]]) || 0,
                         note: row[headerIndex["ملاحظات"]] || '',
@@ -220,8 +211,14 @@ export default function ImportPage() {
 
     const handleDownloadTemplate = () => {
         const wsData = [
-            REQUIRED_HEADERS,
-            ["محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "20/07/2024", "تم الانضمام", 50, "طالب مجتهد"]
+            // Remove "تاريخ التسجيل" from the template header
+            [
+              "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
+              "اسم الولي", "رقم الهاتف 1", "رقم الهاتف 2", "مقر السكن",
+              "الحالة", "رقم الصفحة", "ملاحظات"
+            ],
+            // Remove "تاريخ التسجيل" from the example data
+            ["محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "تم الانضمام", 50, "طالب مجتهد"]
         ];
         const worksheet = XLSX.utils.aoa_to_sheet(wsData);
         const workbook = XLSX.utils.book_new();
@@ -360,7 +357,5 @@ export default function ImportPage() {
     </div>
   );
 }
-
-    
 
     

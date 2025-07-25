@@ -99,13 +99,10 @@ export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 
 
         if (!birth_date || isNaN(birth_date.getTime())) {
             console.error('Invalid birth date for student:', student.full_name);
-            return; // Skip this record
+            // This case should be prevented by the frontend validation
+            return; 
         }
-        if (!registration_date || isNaN(registration_date.getTime())) {
-            console.error('Invalid registration date for student:', student.full_name);
-            return; // Skip this record
-        }
-
+       
         const age = calculateAge(birth_date);
         const age_group = getAgeGroup(age);
 
@@ -120,7 +117,7 @@ export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 
             phone1: student.phone1 || '',
             phone2: student.phone2 || '',
             address: student.address || '',
-            registration_date: Timestamp.fromDate(registration_date),
+            registration_date: Timestamp.fromDate(registration_date || new Date()),
             status: student.status || 'مؤجل',
             page_number: student.page_number || 0,
             reminder_points: 0,
@@ -223,3 +220,5 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
         throw new Error('Could not add points.');
     }
 };
+
+    
