@@ -89,28 +89,30 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 'birth_date'> & { birth_date: Date })[]) => {
+export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 'birth_date' | 'registration_date'> & { birth_date: Date, registration_date: Date })[]) => {
     const batch = writeBatch(db);
 
     studentsData.forEach(student => {
         const newDocRef = doc(studentsCollection);
         
-        // The birth_date is now guaranteed to be a valid Date object from the frontend
-        const birthDate = student.birth_date;
+        const { birth_date, registration_date } = student;
 
-        if (!birthDate || isNaN(birthDate.getTime())) {
-            // This case should ideally be prevented by frontend validation
-            console.error('Invalid date passed to addMultipleStudents for student:', student.full_name);
+        if (!birth_date || isNaN(birth_date.getTime())) {
+            console.error('Invalid birth date for student:', student.full_name);
+            return; // Skip this record
+        }
+        if (!registration_date || isNaN(registration_date.getTime())) {
+            console.error('Invalid registration date for student:', student.full_name);
             return; // Skip this record
         }
 
-        const age = calculateAge(birthDate);
+        const age = calculateAge(birth_date);
         const age_group = getAgeGroup(age);
 
         const newStudent: Omit<Student, 'id'> = {
             full_name: student.full_name || '',
             gender: student.gender === 'ذكر' ? 'ذكر' : 'أنثى',
-            birth_date: Timestamp.fromDate(birthDate),
+            birth_date: Timestamp.fromDate(birth_date),
             age,
             age_group,
             level: student.level || 'غير محدد' as any,
@@ -118,7 +120,7 @@ export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 
             phone1: student.phone1 || '',
             phone2: student.phone2 || '',
             address: student.address || '',
-            registration_date: Timestamp.now(),
+            registration_date: Timestamp.fromDate(registration_date),
             status: student.status || 'مؤجل',
             page_number: student.page_number || 0,
             reminder_points: 0,
