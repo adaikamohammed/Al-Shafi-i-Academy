@@ -102,26 +102,17 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
             return; 
         }
 
-        const newStudent: Omit<Student, 'id'> = {
-            full_name: student.full_name || '',
-            gender: student.gender === 'ذكر' ? 'ذكر' : 'أنثى',
+        const newStudentData = {
+            ...student,
             birth_date: Timestamp.fromDate(birth_date),
-            age: student.age!,
-            age_group: student.age_group!,
-            level: student.level || 'غير محدد' as any,
-            guardian_name: student.guardian_name || '',
-            phone1: student.phone1 || '',
-            phone2: student.phone2 || '',
-            address: student.address || '',
             registration_date: Timestamp.now(),
-            status: student.status || 'مؤجل',
-            page_number: student.page_number || 0,
-            reminder_points: 0,
+            reminder_points: student.reminder_points || 0,
             assigned_sheikh: student.assigned_sheikh || '',
+            level: student.level || 'غير محدد',
             note: student.note || ''
         };
         
-        batch.set(newDocRef, newStudent);
+        batch.set(newDocRef, newStudentData);
     });
 
     try {

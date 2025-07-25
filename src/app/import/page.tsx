@@ -191,7 +191,6 @@ export default function ImportPage() {
                         phone1: String(row[headerIndex["رقم الهاتف 1"]] || ''),
                         phone2: String(row[headerIndex["رقم الهاتف 2"]] || ''),
                         address: row[headerIndex["مقر السكن"]],
-                        registration_date: new Date(), // Set registration date to now
                         status: row[headerIndex["الحالة"]],
                         page_number: Number(row[headerIndex["رقم الصفحة"]]) || 0,
                         note: row[headerIndex["ملاحظات"]] || '',
@@ -200,7 +199,7 @@ export default function ImportPage() {
 
                 const invalidStudents = parsedStudents.filter(s => s && s.error);
                 if (invalidStudents.length > 0) {
-                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 24/02/2000).`);
+                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 2000-02-24).`);
                      setStudents([]);
                      return;
                 }
