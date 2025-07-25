@@ -28,7 +28,7 @@ import { useAuth } from '@/context/auth-context';
 
 
 const REQUIRED_HEADERS = [
-    "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
+    "تاريخ التسجيل", "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
     "اسم الولي", "رقم الهاتف 1", "رقم الهاتف 2", "مقر السكن",
     "الحالة", "رقم الصفحة", "ملاحظات"
 ];
@@ -167,6 +167,9 @@ export default function ImportPage() {
 
                     const birthDateRaw = row[headerIndex["تاريخ الميلاد"]];
                     const birthDate = parseDate(birthDateRaw);
+                    
+                    const registrationDateRaw = row[headerIndex["تاريخ التسجيل"]];
+                    const registrationDate = parseDate(registrationDateRaw);
 
                     if (!birthDate) {
                          // Create an object with an error message for invalid dates
@@ -183,6 +186,7 @@ export default function ImportPage() {
                         full_name: fullName,
                         gender: row[headerIndex["الجنس"]],
                         birth_date: birthDate,
+                        registration_date: registrationDate, // Can be null, will default to now() on save
                         age: age,
                         age_group: age_group,
                         level: row[headerIndex["المستوى الدراسي"]],
@@ -229,11 +233,11 @@ export default function ImportPage() {
     const handleDownloadTemplate = () => {
         const wsData = [
             [
-              "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
+              "تاريخ التسجيل", "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
               "اسم الولي", "رقم الهاتف 1", "رقم الهاتف 2", "مقر السكن",
               "الحالة", "رقم الصفحة", "ملاحظات"
             ],
-            ["محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "تم الانضمام", 50, "طالب مجتهد"]
+            ["25/07/2024", "محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "تم الانضمام", 50, "طالب مجتهد"]
         ];
         const worksheet = XLSX.utils.aoa_to_sheet(wsData);
         const workbook = XLSX.utils.book_new();
@@ -377,3 +381,5 @@ export default function ImportPage() {
     </div>
   );
 }
+
+    

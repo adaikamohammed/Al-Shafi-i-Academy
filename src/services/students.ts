@@ -73,13 +73,13 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[], userId: string) => {
+export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id'>>[], userId: string) => {
     const batch = writeBatch(db);
     
     studentsData.forEach(student => {
         const newDocRef = doc(studentsCollection);
         
-        const { birth_date } = student;
+        const { birth_date, registration_date } = student;
 
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid or missing birth date for student:', student.full_name);
@@ -90,7 +90,9 @@ export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'i
         const newStudentData = {
             ...student,
             birth_date: Timestamp.fromDate(birth_date),
-            registration_date: Timestamp.now(),
+            registration_date: (registration_date && registration_date instanceof Date && !isNaN(registration_date.getTime()))
+                ? Timestamp.fromDate(registration_date)
+                : Timestamp.now(),
             reminder_points: student.reminder_points || 0,
             assigned_sheikh: student.assigned_sheikh || '',
             note: student.note || '',
@@ -199,3 +201,5 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
         throw new Error('Could not add points.');
     }
 };
+
+    
