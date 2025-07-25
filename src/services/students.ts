@@ -191,3 +191,5 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
         throw new Error('Could not add points.');
     }
 };
+
+    
