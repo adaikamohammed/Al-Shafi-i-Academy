@@ -55,24 +55,6 @@ export interface Student {
 
 const studentsCollection = collection(db, 'الطلبة');
 
-// --- Helper Functions ---
-function calculateAge(birthDate: Date) {
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-}
-
-function getAgeGroup(age: number): Student['age_group'] {
-    if (age < 7) return 'أقل من 7';
-    if (age >= 7 && age <= 10) return 'من 7–10';
-    if (age >= 11 && age <= 13) return 'من 11–13';
-    return '14+';
-}
-
 
 export const addStudent = async (studentData: Omit<Student, 'id'|'registration_date'|'birth_date'> & { birth_date: Date }) => {
   try {
@@ -99,7 +81,8 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
 
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid birth date for student:', student.full_name);
-            return; 
+            // This should be caught earlier in the UI, but as a safeguard:
+            throw new Error(`تاريخ ميلاد غير صالح للطالب: ${student.full_name}`);
         }
 
         const newStudentData = {
@@ -108,8 +91,9 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
             registration_date: Timestamp.now(),
             reminder_points: student.reminder_points || 0,
             assigned_sheikh: student.assigned_sheikh || '',
-            level: student.level || 'غير محدد',
-            note: student.note || ''
+            note: student.note || '',
+            level: student.level || 'غير محدد', // Ensure level has a default value
+            status: student.status || 'مؤجل', // Ensure status has a default value
         };
         
         batch.set(newDocRef, newStudentData);
