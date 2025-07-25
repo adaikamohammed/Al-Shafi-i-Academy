@@ -23,18 +23,21 @@ import {
 import { useEffect, useState, useMemo } from 'react';
 import { getStudentsRealtime, Student, LEVELS, SHEIKHS } from '@/services/students';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/auth-context';
 
 export default function StatsPage() {
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
-        const unsubscribe = getStudentsRealtime((studentsList) => {
+        if (!user) return;
+        const unsubscribe = getStudentsRealtime(user.uid, (studentsList) => {
             setStudents(studentsList);
             setLoading(false);
         });
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const stats = useMemo(() => {
         const totalStudents = students.length;

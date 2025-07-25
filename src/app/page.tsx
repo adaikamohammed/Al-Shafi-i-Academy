@@ -43,13 +43,16 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/context/auth-context';
 
 export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = getStudentsRealtime((studentsList) => {
+    if (!user) return;
+    const unsubscribe = getStudentsRealtime(user.uid, (studentsList) => {
         const formattedStudents = studentsList.map(s => ({
             ...s,
             registration_date: s.registration_date instanceof Date ? s.registration_date : (s.registration_date as any).toDate(),
@@ -58,7 +61,7 @@ export default function DashboardPage() {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const stats = useMemo(() => {
     const totalStudents = students.length;

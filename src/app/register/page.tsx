@@ -10,16 +10,26 @@ import { UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { addStudent, Student } from '@/services/students';
 import StudentForm from '@/components/student-form';
+import { useAuth } from '@/context/auth-context';
 
 export default function RegisterPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleRegister = async (values: Omit<Student, 'id'>, resetForm: () => void) => {
+    if (!user) {
+        toast({
+            title: 'خطأ',
+            description: 'يجب تسجيل الدخول لإضافة طالب.',
+            variant: 'destructive',
+        });
+        return;
+    }
     try {
       await addStudent({
         ...values,
         registration_date: new Date(),
-      } as any);
+      } as any, user.uid);
 
       toast({
         title: 'تم التسجيل بنجاح!',

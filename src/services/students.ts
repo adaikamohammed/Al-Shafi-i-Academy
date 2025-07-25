@@ -51,17 +51,19 @@ export interface Student {
   reminder_points: number;
   assigned_sheikh?: string;
   note?: string;
+  createdBy?: string;
 }
 
 const studentsCollection = collection(db, 'الطلبة');
 
 
-export const addStudent = async (studentData: Omit<Student, 'id'|'registration_date'|'birth_date'> & { birth_date: Date }) => {
+export const addStudent = async (studentData: Omit<Student, 'id'|'registration_date'|'birth_date'> & { birth_date: Date }, userId: string) => {
   try {
     const docRef = await addDoc(studentsCollection, {
         ...studentData,
         birth_date: Timestamp.fromDate(studentData.birth_date as Date),
         registration_date: Timestamp.now(),
+        createdBy: userId
     });
     return docRef.id;
   } catch (e) {
@@ -71,7 +73,7 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[]) => {
+export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[], userId: string) => {
     const batch = writeBatch(db);
 
     studentsData.forEach(student => {
@@ -79,22 +81,21 @@ export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'i
         
         const { birth_date } = student;
 
-        // This is a critical check. Ensure birth_date is a valid Date object.
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid or missing birth date for student:', student.full_name);
-            // This error should be thrown to be caught by the UI.
             throw new Error(`تاريخ ميلاد غير صالح أو مفقود للطالب: ${student.full_name}`);
         }
 
         const newStudentData = {
             ...student,
-            birth_date: Timestamp.fromDate(birth_date), // Convert valid Date to Timestamp
-            registration_date: Timestamp.now(), // Set registration date on the server
+            birth_date: Timestamp.fromDate(birth_date),
+            registration_date: Timestamp.now(),
             reminder_points: student.reminder_points || 0,
             assigned_sheikh: student.assigned_sheikh || '',
             note: student.note || '',
-            level: student.level || 'غير محدد', // Ensure level has a default value
-            status: student.status || 'مؤجل', // Ensure status has a default value
+            level: student.level || 'غير محدد', 
+            status: student.status || 'مؤجل',
+            createdBy: userId,
         };
         
         batch.set(newDocRef, newStudentData);
@@ -104,7 +105,6 @@ export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'i
         await batch.commit();
     } catch (e) {
         console.error("Error committing batch: ", e);
-        // Re-throw the error to be handled by the calling function in the UI.
         throw new Error("فشلت عملية حفظ الطلاب في قاعدة البيانات.");
     }
 };
@@ -137,8 +137,14 @@ export const deleteStudent = async (studentId: string) => {
 };
 
 
-export const getStudentsRealtime = (callback: (students: Student[]) => void): Unsubscribe => {
-    const q = query(studentsCollection, orderBy('registration_date', 'desc'));
+export const getStudentsRealtime = (userId: string | undefined, callback: (students: Student[]) => void): Unsubscribe => {
+    if (!userId) {
+        // Return an empty unsubscribe function if no user is logged in
+        callback([]);
+        return () => {};
+    }
+    const q = query(studentsCollection, where("createdBy", "==", userId), orderBy('registration_date', 'desc'));
+    
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const students = querySnapshot.docs.map(doc => ({
             id: doc.id,
@@ -193,4 +199,3 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
         throw new Error('Could not add points.');
     }
 };
-

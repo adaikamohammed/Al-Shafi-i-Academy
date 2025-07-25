@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import StudentForm from '@/components/student-form';
 import * as XLSX from 'xlsx';
+import { useAuth } from '@/context/auth-context';
 
 
 type Filters = {
@@ -71,6 +72,7 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -84,7 +86,8 @@ export default function StudentsPage() {
   });
 
   useEffect(() => {
-    const unsubscribe = getStudentsRealtime((studentsList) => {
+    if (!user) return;
+    const unsubscribe = getStudentsRealtime(user.uid, (studentsList) => {
       const formattedStudents = studentsList.map(s => ({
         ...s,
         birth_date: s.birth_date instanceof Date ? s.birth_date : (s.birth_date as any).toDate(),
@@ -95,7 +98,7 @@ export default function StudentsPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handleFilterChange = (filterName: keyof Filters, value: string) => {
     setFilters(prev => ({...prev, [filterName]: value}));
@@ -206,7 +209,6 @@ export default function StudentsPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "الطلبة");
 
-    // Enforce RTL direction
     if(!worksheet['!cols']) worksheet['!cols'] = [];
      if(!worksheet['!props']) worksheet['!props'] = {};
      worksheet['!props'].RTL = true;

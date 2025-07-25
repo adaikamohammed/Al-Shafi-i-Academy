@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { addMultipleStudents } from '@/services/students';
 import type { Student } from '@/services/students';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/context/auth-context';
 
 
 const REQUIRED_HEADERS = [
@@ -58,6 +59,7 @@ export default function ImportPage() {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { user } = useAuth();
 
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,38 +77,30 @@ export default function ImportPage() {
         }
     };
     
-    // This function now robustly handles dates from Excel (serial numbers) and string formats.
     const parseDate = (dateInput: any): Date | null => {
         if (!dateInput) return null;
 
-        // XLSX with `cellDates: true` will parse dates as Date objects
         if (dateInput instanceof Date) {
-            // Check if date is valid
             if (!isNaN(dateInput.getTime())) {
                 return dateInput;
             }
         }
 
-        // Handle Excel serial date number
         if (typeof dateInput === 'number') {
-            // The formula for conversion is: (excelDate - 25569) * 86400 * 1000
-            // This correctly handles the Excel 1900 leap year bug.
             const date = new Date(Math.round((dateInput - 25569) * 86400 * 1000));
             if (!isNaN(date.getTime())) {
                 return date;
             }
         }
         
-        // Handle 'DD/MM/YYYY' or 'DD-MM-YYYY' string formats
         if (typeof dateInput === 'string') {
             const parts = dateInput.split(/[/.-]/);
             if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1; // JS month is 0-indexed
+                const month = parseInt(parts[1], 10) - 1; 
                 let year = parseInt(parts[2], 10);
 
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                     // Handle 2-digit year, assume 20xx or 19xx
                     if (year < 100) {
                         year += (year > new Date().getFullYear() % 100) ? 1900 : 2000;
                     }
@@ -118,7 +112,6 @@ export default function ImportPage() {
             }
         }
         
-        // If it's a string that can be parsed directly (e.g., ISO 8601)
         const parsedDate = new Date(dateInput);
         if (!isNaN(parsedDate.getTime())) {
             return parsedDate;
@@ -133,14 +126,12 @@ export default function ImportPage() {
         reader.onload = (event) => {
             try {
                 const data = event.target?.result;
-                // Use cellDates: true to let XLSX handle date conversions where possible
                 const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                // Using sheet_to_json with header: 1 to get array of arrays
                 const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
-                if(jsonData.length < 2) { // Should have header and at least one data row
+                if(jsonData.length < 2) { 
                     setError("الملف فارغ أو لا يحتوي على بيانات.");
                     setStudents([]);
                     return;
@@ -160,9 +151,8 @@ export default function ImportPage() {
                     headerIndex[h] = i;
                 });
                 
-
                 const parsedStudents = jsonData.slice(1).map((row, rowIndex) => {
-                    if (row.every(cell => cell === null || cell === '')) return null; // Skip completely empty rows
+                    if (row.every(cell => cell === null || cell === '')) return null; 
                     
                     const fullName = row[headerIndex["الاسم الكامل"]];
                     if (!fullName) return null;
@@ -228,13 +218,11 @@ export default function ImportPage() {
 
     const handleDownloadTemplate = () => {
         const wsData = [
-            // Remove "تاريخ التسجيل" from the template header
             [
               "الاسم الكامل", "الجنس", "تاريخ الميلاد", "المستوى الدراسي",
               "اسم الولي", "رقم الهاتف 1", "رقم الهاتف 2", "مقر السكن",
               "الحالة", "رقم الصفحة", "ملاحظات"
             ],
-            // Remove "تاريخ التسجيل" from the example data
             ["محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "تم الانضمام", 50, "طالب مجتهد"]
         ];
         const worksheet = XLSX.utils.aoa_to_sheet(wsData);
@@ -245,6 +233,14 @@ export default function ImportPage() {
     };
     
     const handleImport = async () => {
+        if (!user) {
+             toast({
+                title: 'خطأ في المصادقة',
+                description: 'يجب أن تكون مسجلاً للدخول لتنفيذ هذه العملية.',
+                variant: 'destructive'
+            })
+            return;
+        }
         if (students.length === 0 || error) {
             toast({
                 title: 'لا يمكن الاستيراد',
@@ -255,10 +251,10 @@ export default function ImportPage() {
         }
         setLoading(true);
         try {
-            await addMultipleStudents(students as any[]);
+            await addMultipleStudents(students as any[], user.uid);
             toast({
                 title: 'تم الاستيراد بنجاح!',
-                description: `تم استيراد ${students.length} طالبًا إلى قاعدة البيانات.`,
+                description: `تم حفظ ${students.length} طالبًا في قاعدة البيانات بشكل دائم.`,
                 className: 'bg-accent text-accent-foreground',
             });
             router.push('/students');
@@ -266,7 +262,7 @@ export default function ImportPage() {
             console.error(err);
             toast({
                 title: 'خطأ في الاستيراد!',
-                description: 'فشلت عملية استيراد الطلاب. يرجى مراجعة البيانات والمحاولة مرة أخرى.',
+                description: 'فشلت عملية حفظ الطلاب في قاعدة البيانات. يرجى مراجعة البيانات والمحاولة مرة أخرى.',
                 variant: 'destructive',
             });
         } finally {
@@ -287,7 +283,6 @@ export default function ImportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-            {/* Step 1: Download Template */}
             <div className="space-y-4 p-4 border rounded-lg">
                 <h3 className="font-headline text-lg flex items-center gap-2">
                     <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">1</span>
@@ -302,7 +297,6 @@ export default function ImportPage() {
                 </Button>
             </div>
 
-            {/* Step 2: Upload File */}
             <div className="space-y-4 p-4 border rounded-lg">
                 <h3 className="font-headline text-lg flex items-center gap-2">
                     <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary text-primary-foreground font-bold text-sm">2</span>
@@ -326,7 +320,6 @@ export default function ImportPage() {
                 </Alert>
            )}
 
-            {/* Step 3: Preview and Import */}
            {students.length > 0 && !error && (
              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                 <h3 className="font-headline text-lg flex items-center gap-2">
