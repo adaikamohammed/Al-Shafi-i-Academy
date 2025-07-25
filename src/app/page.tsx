@@ -89,36 +89,46 @@ export default function DashboardPage() {
 
   const registrationChartData = useMemo(() => {
     if (timeFrame === 'weekly') {
-        const weeklyData: { [week: string]: number } = {};
+        const weeklyData: { [week: string]: { count: number, names: string[] } } = {};
         students.forEach(student => {
             const weekStart = startOfWeek(student.registration_date, { locale: ar });
             const weekKey = format(weekStart, 'yyyy-MM-dd');
-            weeklyData[weekKey] = (weeklyData[weekKey] || 0) + 1;
+            if (!weeklyData[weekKey]) {
+                weeklyData[weekKey] = { count: 0, names: [] };
+            }
+            weeklyData[weekKey].count++;
+            weeklyData[weekKey].names.push(student.full_name);
         });
 
         return Object.entries(weeklyData)
-            .map(([weekKey, count]) => {
+            .map(([weekKey, data]) => {
                 const weekStart = new Date(weekKey);
                 const weekEnd = endOfWeek(weekStart, { locale: ar });
                 return {
                     name: `أسبوع ${format(weekStart, 'd MMM', { locale: ar })}`,
-                    "عدد التسجيلات": count,
+                    "عدد التسجيلات": data.count,
+                    studentNames: data.names,
                     tooltip: `${format(weekStart, 'd MMM', { locale: ar })} - ${format(weekEnd, 'd MMM yyyy', { locale: ar })}`,
                 }
             })
             .sort((a, b) => new Date(a.tooltip.split(' - ')[0]).getTime() - new Date(b.tooltip.split(' - ')[0]).getTime());
 
     } else { // monthly
-        const monthlyData: { [month: string]: number } = {};
+        const monthlyData: { [month: string]: { count: number, names: string[] } } = {};
         students.forEach(student => {
             const monthKey = format(student.registration_date, 'yyyy-MM');
-            monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = { count: 0, names: [] };
+            }
+            monthlyData[monthKey].count++;
+            monthlyData[monthKey].names.push(student.full_name);
         });
         
         return Object.entries(monthlyData)
-            .map(([monthKey, count]) => ({
+            .map(([monthKey, data]) => ({
                 name: format(new Date(monthKey), 'MMMM yyyy', { locale: ar }),
-                "عدد التسجيلات": count,
+                "عدد التسجيلات": data.count,
+                studentNames: data.names,
             }))
             .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
     }
@@ -312,10 +322,23 @@ export default function DashboardPage() {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     const tooltipLabel = data.tooltip || label;
+                    const studentNames = data.studentNames || [];
+                    const namesToShow = studentNames.slice(0, 5);
+                    const remainingNames = studentNames.length - namesToShow.length;
+
                     return (
-                      <div className="p-2 bg-background border rounded-md shadow-lg">
-                        <p className="font-bold">{tooltipLabel}</p>
-                        <p className="text-sm text-accent">{`${payload[0].name}: ${payload[0].value}`}</p>
+                      <div className="p-3 bg-background border rounded-md shadow-lg max-w-xs">
+                        <p className="font-bold text-base mb-2">{tooltipLabel}</p>
+                        <p className="text-sm text-accent font-semibold mb-2">{`${payload[0].name}: ${payload[0].value}`}</p>
+                        <div className="border-t pt-2 space-y-1">
+                            <p className="text-xs text-muted-foreground font-bold">الطلاب المسجلون:</p>
+                             {namesToShow.map((name: string, index: number) => (
+                                <p key={index} className="text-xs truncate">{`${index + 1}. ${name}`}</p>
+                            ))}
+                            {remainingNames > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">... و {remainingNames} آخرون.</p>
+                            )}
+                        </div>
                       </div>
                     );
                   }
