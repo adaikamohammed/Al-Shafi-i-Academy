@@ -24,6 +24,7 @@ import {
   Clock,
   UserX,
   School,
+  LineChart,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,8 +41,12 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  LineChart as RechartsLineChart,
+  Line,
+  Legend,
 } from 'recharts';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek, getMonth, getYear } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
 
@@ -49,6 +54,7 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const [timeFrame, setTimeFrame] = useState<'weekly' | 'monthly'>('monthly');
 
   useEffect(() => {
     if (!user) return;
@@ -69,7 +75,7 @@ export default function DashboardPage() {
     const postponed = students.filter((s) => s.status === 'مؤجل').length;
     const rejected = students.filter((s) => s.status === 'مرفوض').length;
     const moved = students.filter((s) => s.status === 'دخل لمدرسة أخرى').length;
-    const latestStudents = students.slice(0, 5);
+    const latestStudents = [...students].sort((a, b) => b.registration_date.getTime() - a.registration_date.getTime()).slice(0, 5);
 
     const statusDistribution = [
       { name: 'تم الانضمام', value: joined, fill: 'hsl(var(--accent))' },
@@ -80,6 +86,43 @@ export default function DashboardPage() {
 
     return { totalStudents, joined, postponed, rejected, moved, latestStudents, statusDistribution };
   }, [students]);
+
+  const registrationChartData = useMemo(() => {
+    if (timeFrame === 'weekly') {
+        const weeklyData: { [week: string]: number } = {};
+        students.forEach(student => {
+            const weekStart = startOfWeek(student.registration_date, { locale: ar });
+            const weekKey = format(weekStart, 'yyyy-MM-dd');
+            weeklyData[weekKey] = (weeklyData[weekKey] || 0) + 1;
+        });
+
+        return Object.entries(weeklyData)
+            .map(([weekKey, count]) => {
+                const weekStart = new Date(weekKey);
+                const weekEnd = endOfWeek(weekStart, { locale: ar });
+                return {
+                    name: `أسبوع ${format(weekStart, 'd MMM', { locale: ar })}`,
+                    "عدد التسجيلات": count,
+                    tooltip: `${format(weekStart, 'd MMM', { locale: ar })} - ${format(weekEnd, 'd MMM yyyy', { locale: ar })}`,
+                }
+            })
+            .sort((a, b) => new Date(a.tooltip.split(' - ')[0]).getTime() - new Date(b.tooltip.split(' - ')[0]).getTime());
+
+    } else { // monthly
+        const monthlyData: { [month: string]: number } = {};
+        students.forEach(student => {
+            const monthKey = format(student.registration_date, 'yyyy-MM');
+            monthlyData[monthKey] = (monthlyData[monthKey] || 0) + 1;
+        });
+        
+        return Object.entries(monthlyData)
+            .map(([monthKey, count]) => ({
+                name: format(new Date(monthKey), 'MMMM yyyy', { locale: ar }),
+                "عدد التسجيلات": count,
+            }))
+            .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+    }
+  }, [students, timeFrame]);
 
   const StatCard = ({ title, value, icon: Icon, description, colorClass }: any) => (
     <Card>
@@ -229,6 +272,69 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
       </div>
+
+       <Card className="mt-8">
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle className="font-headline text-xl flex items-center gap-3">
+                <LineChart className="h-6 w-6 text-primary" />
+                تطور تسجيلات الطلبة الجدد
+              </CardTitle>
+              <CardDescription>
+                تتبع عدد الطلاب الجدد حسب تاريخ الإضافة.
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={timeFrame === 'weekly' ? 'default' : 'outline'}
+                onClick={() => setTimeFrame('weekly')}
+              >
+                عرض أسبوعي
+              </Button>
+              <Button
+                variant={timeFrame === 'monthly' ? 'default' : 'outline'}
+                onClick={() => setTimeFrame('monthly')}
+              >
+                عرض شهري
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <RechartsLineChart data={registrationChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis allowDecimals={false} />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    const tooltipLabel = data.tooltip || label;
+                    return (
+                      <div className="p-2 bg-background border rounded-md shadow-lg">
+                        <p className="font-bold">{tooltipLabel}</p>
+                        <p className="text-sm text-accent">{`${payload[0].name}: ${payload[0].value}`}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="عدد التسجيلات"
+                stroke="hsl(var(--accent))"
+                strokeWidth={2}
+                dot={{ fill: 'hsl(var(--accent))' }}
+                activeDot={{ r: 8, fill: 'hsl(var(--accent))', stroke: 'hsl(var(--background))' }}
+              />
+            </RechartsLineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
     </div>
   );
