@@ -1,7 +1,25 @@
 import { db } from './firebase';
 import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc, where, getDoc, writeBatch } from 'firebase/firestore';
 
-export const LEVELS = ['تحضيري', 'روضة', '5 سنوات ابتدائي', '4 متوسط', '3 ثانوي', 'جامعي'];
+export const LEVELS = [
+    'روضة',
+    'تحضيري',
+    '1 إبتدائي',
+    '2 إبتدائي',
+    '3 إبتدائي',
+    '4 إبتدائي',
+    '5 إبتدائي',
+    '1 متوسط',
+    '2 متوسط',
+    '3 متوسط',
+    '4 متوسط',
+    '1 ثانوي',
+    '2 ثانوي',
+    '3 ثانوي',
+    'جامعي',
+    'متخرج',
+    'متوقف عن الدراسة'
+];
 
 export const SHEIKHS = [
     "الشيخ إبراهيم مراد",
@@ -22,7 +40,7 @@ export interface Student {
   birth_date: Date | Timestamp;
   age: number;
   age_group: 'أقل من 7' | 'من 7–10' | 'من 11–13' | '14+';
-  level: 'تحضيري' | 'روضة' | '5 سنوات ابتدائي' | '4 متوسط' | '3 ثانوي' | 'جامعي';
+  level: (typeof LEVELS)[number];
   guardian_name: string;
   phone1: string;
   phone2?: string;

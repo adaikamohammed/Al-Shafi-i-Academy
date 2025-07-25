@@ -40,7 +40,7 @@ const StudentFormSchema = z.object({
   birth_date: z.date({
     required_error: 'تاريخ الميلاد مطلوب.',
   }),
-  level: z.enum(LEVELS, { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
+  level: z.enum(LEVELS as [string, ...string[]], { required_error: 'الرجاء اختيار المستوى الدراسي.' }),
   guardian_name: z.string().min(2, 'اسم الأب يجب أن يتكون من حرفين على الأقل.'),
   phone1: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح. يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.'),
   phone2: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
@@ -263,7 +263,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                 <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                     <SelectTrigger>
-                    <SelectValue placeholder="اختر المستوى" />
+                    <SelectValue placeholder="اختر المستوى الدراسي" />
                     </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -418,5 +418,3 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
     </Form>
   );
 }
-
-    
