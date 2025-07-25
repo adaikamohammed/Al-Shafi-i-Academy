@@ -160,7 +160,7 @@ export default function ImportPage() {
                     if (!birthDate) {
                          return { 
                              full_name: fullName, 
-                             error: `تاريخ ميلاد غير صالح. القيمة المدخلة: '${birthDateRaw}'`
+                             error: `تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}. القيمة المدخلة: '${birthDateRaw}'`
                         }; 
                     }
 
@@ -169,7 +169,7 @@ export default function ImportPage() {
                      if (!registrationDate) {
                          return { 
                              full_name: fullName, 
-                             error: `تاريخ تسجيل غير صالح. القيمة المدخلة: '${registrationDateRaw}'`
+                             error: `تاريخ تسجيل غير صالح في الصف ${rowIndex + 2}. القيمة المدخلة: '${registrationDateRaw}'`
                         }; 
                     }
                     
@@ -191,7 +191,7 @@ export default function ImportPage() {
 
                 const invalidStudents = parsedStudents.filter(s => s && s.error);
                 if (invalidStudents.length > 0) {
-                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 2000/02/24).`);
+                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 24/02/2000).`);
                      setStudents([]);
                      return;
                 }
@@ -360,5 +360,7 @@ export default function ImportPage() {
     </div>
   );
 }
+
+    
 
     
