@@ -156,8 +156,8 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
          <StatCard title="إجمالي الطلاب" value={stats.totalStudents} icon={Users} />
          <StatCard title="المنضمون" value={stats.joined} icon={UserCheck} colorClass="text-accent" />
-         <StatCard title="المؤجلون" value={postponed} icon={Clock} colorClass="text-yellow-500" />
-         <StatCard title="المرفوضون" value={rejected} icon={UserX} colorClass="text-destructive" />
+         <StatCard title="المؤجلون" value={stats.postponed} icon={Clock} colorClass="text-yellow-500" />
+         <StatCard title="المرفوضون" value={stats.rejected} icon={UserX} colorClass="text-destructive" />
       </div>
 
        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
