@@ -41,27 +41,36 @@ export default function StatsPage() {
 
     const stats = useMemo(() => {
         const totalStudents = students.length;
-        const joined = students.filter(s => s.status === 'تم الانضمام').length;
-        const postponed = students.filter(s => s.status === 'مؤجل').length;
-        const rejected = students.filter(s => s.status === 'رُفِض').length;
         const highReminders = students.filter(s => (s.reminder_points || 0) > 20).length;
         
         const levelDistribution = LEVELS.map(level => ({
             name: level,
             students: students.filter(s => s.level === level).length
         })).filter(item => item.students > 0);
+        
+        const statuses = ['تم الانضمام', 'مؤجل', 'رُفِض', 'متوقف عن الدراسة'];
+        const statusColors: { [key: string]: string } = {
+            'تم الانضمام': 'hsl(var(--accent))',
+            'مؤجل': 'hsl(var(--primary))',
+            'رُفِض': 'hsl(var(--destructive))',
+            'متوقف عن الدراسة': 'hsl(var(--muted-foreground))',
+        };
 
-        const statusDistribution = [
-            { name: 'تم الانضمام', value: joined, fill: 'hsl(var(--accent))' },
-            { name: 'مؤجل', value: postponed, fill: 'hsl(var(--primary))' },
-            { name: 'رُفِض', value: rejected, fill: 'hsl(var(--destructive))' },
-        ];
+        const statusDistribution = statuses.map(status => ({
+            name: status,
+            value: students.filter(s => s.status === status).length,
+            fill: statusColors[status]
+        }));
         
         const sheikhDistribution = SHEIKHS.map(sheikh => ({
             name: sheikh,
             value: students.filter(s => s.assigned_sheikh === sheikh).length,
         })).filter(item => item.value > 0);
 
+        // For the cards, we can still calculate them directly
+        const joined = statusDistribution.find(s => s.name === 'تم الانضمام')?.value || 0;
+        const postponed = statusDistribution.find(s => s.name === 'مؤجل')?.value || 0;
+        const rejected = statusDistribution.find(s => s.name === 'رُفِض')?.value || 0;
 
         return { totalStudents, joined, postponed, rejected, highReminders, levelDistribution, statusDistribution, sheikhDistribution };
     }, [students]);
@@ -240,7 +249,11 @@ export default function StatsPage() {
                     borderRadius: 'var(--radius)'
                   }}
                 />
-                <Bar dataKey="value" name="عدد الطلاب" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" name="عدد الطلاب" radius={[4, 4, 0, 0]}>
+                    {stats.statusDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                </Bar>
               </RechartsBarChart>
             </ResponsiveContainer>
           </CardContent>

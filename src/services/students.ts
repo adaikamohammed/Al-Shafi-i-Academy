@@ -46,7 +46,7 @@ export interface Student {
   phone2?: string;
   address: string;
   registration_date: Timestamp | Date;
-  status: 'تم الانضمام' | 'مؤجل' | 'دخل لمدرسة أخرى' | 'رُفِض';
+  status: 'تم الانضمام' | 'مؤجل' | 'دخل لمدرسة أخرى' | 'رُفِض' | 'متوقف عن الدراسة';
   page_number?: number;
   reminder_points: number;
   assigned_sheikh?: string;
@@ -75,10 +75,9 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 
 export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[], userId: string) => {
     const batch = writeBatch(db);
-    const studentsCollectionRef = collection(db, 'الطلبة');
-
+    
     studentsData.forEach(student => {
-        const newDocRef = doc(studentsCollectionRef);
+        const newDocRef = doc(studentsCollection);
         
         const { birth_date } = student;
 
