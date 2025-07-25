@@ -231,6 +231,9 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                 <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                     mode="single"
+                    captionLayout="dropdown-buttons"
+                    fromYear={1990}
+                    toYear={new Date().getFullYear()}
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
