@@ -108,7 +108,7 @@ export function Header() {
         <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
             <span className="font-headline text-lg font-bold text-accent sm:inline-block">
-                المدرسة القرآنية للإمام الشافعي
+                الإمام الشافعي
             </span>
             </Link>
             {currentDate && (
@@ -159,7 +159,7 @@ export function Header() {
               <div className="flex items-center justify-between">
                  <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
                     <span className="font-headline text-lg font-bold text-accent">
-                      المدرسة القرآنية للإمام الشافعي
+                      الإمام الشافعي
                     </span>
                  </Link>
               </div>

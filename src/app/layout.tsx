@@ -1,3 +1,4 @@
+
 'use client';
 import './globals.css';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <title>المدرسة القرآنية للإمام الشافعي</title>
+        <title>الإمام الشافعي</title>
         <meta name="description" content="موقع المدرسة القرآنية للإمام الشافعي – تقسيم الوادي" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
