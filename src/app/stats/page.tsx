@@ -68,6 +68,26 @@ export default function StatsPage() {
     
     const PIE_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
+    const getLevelColor = (level: string) => {
+        const levelLower = level.toLowerCase();
+        if (levelLower.includes('روضة') || levelLower.includes('تحضيري') || levelLower.includes('ابتدائي')) {
+            return '#F4C430'; // أصفر ذهبي
+        }
+        if (levelLower.includes('متوسط')) {
+            return '#FFA500'; // برتقالي
+        }
+        if (levelLower.includes('ثانوي')) {
+            return '#3F51B5'; // أزرق ملكي
+        }
+        if (levelLower.includes('جامعي') || levelLower.includes('متخرج')) {
+            return '#4CAF50'; // أخضر
+        }
+        if (levelLower.includes('متوقف')) {
+            return '#E57373'; // أحمر باهت
+        }
+        return '#ccc'; // لون افتراضي
+    };
+
     if (loading) {
         return (
             <div className="container mx-auto py-12 px-4">
@@ -188,7 +208,11 @@ export default function StatsPage() {
                     borderRadius: 'var(--radius)'
                   }}
                 />
-                <Bar dataKey="students" fill="hsl(var(--primary))" name="عدد الطلاب" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="students" name="عدد الطلاب" radius={[0, 4, 4, 0]}>
+                    {stats.levelDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getLevelColor(entry.name)} />
+                    ))}
+                </Bar>
               </RechartsBarChart>
             </ResponsiveContainer>
           </CardContent>
