@@ -95,7 +95,15 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
     studentsData.forEach(student => {
         const newDocRef = doc(studentsCollection);
         
-        const birthDate = student.birth_date instanceof Date ? student.birth_date : new Date();
+        // Ensure birth_date is a valid Date object
+        const birthDate = student.birth_date ? new Date(student.birth_date as any) : new Date();
+
+        if (isNaN(birthDate.getTime())) {
+            console.error('Invalid date for student:', student.full_name, student.birth_date);
+            // Skip this student or handle the error as needed
+            return;
+        }
+
         const age = calculateAge(birthDate);
         const age_group = getAgeGroup(age);
 
