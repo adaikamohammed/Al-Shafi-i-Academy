@@ -95,7 +95,7 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
     studentsData.forEach(student => {
         const newDocRef = doc(studentsCollection);
         
-        const { birth_date, registration_date } = student;
+        const { birth_date } = student;
 
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid birth date for student:', student.full_name);
@@ -113,7 +113,7 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
             phone1: student.phone1 || '',
             phone2: student.phone2 || '',
             address: student.address || '',
-            registration_date: Timestamp.fromDate(registration_date as Date || new Date()),
+            registration_date: Timestamp.now(),
             status: student.status || 'مؤجل',
             page_number: student.page_number || 0,
             reminder_points: 0,
