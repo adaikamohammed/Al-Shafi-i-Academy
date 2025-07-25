@@ -31,7 +31,6 @@ const navLinks = [
   { href: '/students', label: 'قائمة الطلبة', icon: List },
   { href: '/import', label: 'استيراد طلبة', icon: Upload },
   { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },
-  { href: '/attendance', label: 'حضور الولي', icon: Users },
   { href: '/points', label: 'نقاط الحضور', icon: PlusCircle },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
