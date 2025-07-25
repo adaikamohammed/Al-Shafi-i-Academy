@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
