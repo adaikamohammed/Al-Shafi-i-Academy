@@ -83,6 +83,7 @@ export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'i
 
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid or missing birth date for student:', student.full_name);
+            // This should be handled in the UI, but as a fallback:
             throw new Error(`تاريخ ميلاد غير صالح أو مفقود للطالب: ${student.full_name}`);
         }
 
@@ -139,7 +140,6 @@ export const deleteStudent = async (studentId: string) => {
 
 export const getStudentsRealtime = (userId: string | undefined, callback: (students: Student[]) => void): Unsubscribe => {
     if (!userId) {
-        // Return an empty unsubscribe function if no user is logged in
         callback([]);
         return () => {};
     }
@@ -153,7 +153,7 @@ export const getStudentsRealtime = (userId: string | undefined, callback: (stude
         callback(students);
     }, (error) => {
         console.error("Error getting documents in real-time: ", error);
-        throw new Error('Could not retrieve students in real-time.');
+        callback([]);
     });
 
     return unsubscribe;

@@ -85,8 +85,10 @@ export default function ImportPage() {
                 return dateInput;
             }
         }
-
+        
+        // Handle Excel's numeric date format
         if (typeof dateInput === 'number') {
+            // The subtraction of 25569 converts Excel's date (days since 1900-01-01) to Unix timestamp (milliseconds since 1970-01-01)
             const date = new Date(Math.round((dateInput - 25569) * 86400 * 1000));
             if (!isNaN(date.getTime())) {
                 return date;
@@ -94,15 +96,17 @@ export default function ImportPage() {
         }
         
         if (typeof dateInput === 'string') {
+            // Try to parse formats like 'dd/mm/yyyy' or 'dd-mm-yyyy'
             const parts = dateInput.split(/[/.-]/);
             if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1; 
+                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
                 let year = parseInt(parts[2], 10);
 
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    // Handle 2-digit years
                     if (year < 100) {
-                        year += (year > new Date().getFullYear() % 100) ? 1900 : 2000;
+                        year += (year > (new Date().getFullYear() % 100)) ? 1900 : 2000;
                     }
                     const date = new Date(Date.UTC(year, month, day));
                      if (!isNaN(date.getTime())) {
@@ -112,6 +116,7 @@ export default function ImportPage() {
             }
         }
         
+        // Fallback for other string formats that JS can parse
         const parsedDate = new Date(dateInput);
         if (!isNaN(parsedDate.getTime())) {
             return parsedDate;
@@ -129,6 +134,7 @@ export default function ImportPage() {
                 const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
+                // Use raw: false to ensure dates are parsed by the library if possible
                 const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
                 if(jsonData.length < 2) { 
@@ -152,15 +158,18 @@ export default function ImportPage() {
                 });
                 
                 const parsedStudents = jsonData.slice(1).map((row, rowIndex) => {
+                    // Skip empty rows
                     if (row.every(cell => cell === null || cell === '')) return null; 
                     
                     const fullName = row[headerIndex["الاسم الكامل"]];
+                    // Skip rows without a full name
                     if (!fullName) return null;
 
                     const birthDateRaw = row[headerIndex["تاريخ الميلاد"]];
                     const birthDate = parseDate(birthDateRaw);
 
                     if (!birthDate) {
+                         // Create an object with an error message for invalid dates
                          return { 
                              full_name: fullName, 
                              error: `تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}. القيمة المدخلة: '${birthDateRaw}'`
@@ -185,12 +194,13 @@ export default function ImportPage() {
                         page_number: Number(row[headerIndex["رقم الصفحة"]]) || 0,
                         note: row[headerIndex["ملاحظات"]] || '',
                     };
-                }).filter(s => s); 
+                }).filter(s => s); // Remove null entries from empty or skipped rows
 
+                // Check for any students that have parsing errors
                 const invalidStudents = parsedStudents.filter(s => s && s.error);
                 if (invalidStudents.length > 0) {
                      setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 24/02/2000).`);
-                     setStudents([]);
+                     setStudents([]); // Do not show preview if there are errors
                      return;
                 }
                 
