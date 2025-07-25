@@ -1,14 +1,10 @@
-import type { Metadata } from 'next';
+'use client';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { Header } from '@/components/layout/header';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 
-export const metadata: Metadata = {
-  title: 'المدرسة القرآنية للإمام الشافعي',
-  description: 'موقع المدرسة القرآنية للإمام الشافعي – تقسيم الوادي',
-};
+// Metadata is now defined in the page.tsx or layout.tsx of the specific route if needed, not in a 'use client' file.
 
 export default function RootLayout({
   children,
@@ -18,6 +14,8 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
+        <title>المدرسة القرآنية للإمام الشافعي</title>
+        <meta name="description" content="موقع المدرسة القرآنية للإمام الشافعي – تقسيم الوادي" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
