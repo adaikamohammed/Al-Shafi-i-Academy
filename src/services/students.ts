@@ -89,19 +89,19 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
+export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 'birth_date'> & { birth_date: Date })[]) => {
     const batch = writeBatch(db);
 
     studentsData.forEach(student => {
         const newDocRef = doc(studentsCollection);
         
-        // Ensure birth_date is a valid Date object
-        const birthDate = student.birth_date ? new Date(student.birth_date as any) : new Date();
+        // The birth_date is now guaranteed to be a valid Date object from the frontend
+        const birthDate = student.birth_date;
 
-        if (isNaN(birthDate.getTime())) {
-            console.error('Invalid date for student:', student.full_name, student.birth_date);
-            // Skip this student or handle the error as needed
-            return;
+        if (!birthDate || isNaN(birthDate.getTime())) {
+            // This case should ideally be prevented by frontend validation
+            console.error('Invalid date passed to addMultipleStudents for student:', student.full_name);
+            return; // Skip this record
         }
 
         const age = calculateAge(birthDate);

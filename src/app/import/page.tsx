@@ -17,7 +17,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Upload, Download, FileCheck2, ArrowRight } from 'lucide-react';
+import { Upload, Download, FileCheck2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
@@ -61,93 +61,122 @@ export default function ImportPage() {
             parseExcel(selectedFile);
         }
     };
-
+    
+    // This function now robustly handles dates from Excel (serial numbers) and string formats.
     const parseDate = (dateInput: any): Date | null => {
         if (!dateInput) return null;
-        // If it's already a Date object from xlsx parsing
+
+        // XLSX with `cellDates: true` will parse dates as Date objects
         if (dateInput instanceof Date) {
             return dateInput;
         }
-        // If it's a string like 'DD/MM/YYYY' or 'DD-MM-YYYY'
+
+        // Handle Excel serial date number
+        if (typeof dateInput === 'number') {
+            // The formula for conversion is: (excelDate - 25569) * 86400 * 1000
+            // This correctly handles the Excel 1900 leap year bug.
+            return new Date(Math.round((dateInput - 25569) * 86400 * 1000));
+        }
+        
+        // Handle 'DD/MM/YYYY' or 'DD-MM-YYYY' string formats
         if (typeof dateInput === 'string') {
             const parts = dateInput.split(/[/.-]/);
             if (parts.length === 3) {
                 const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-                const year = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10) - 1; // JS month is 0-indexed
+                let year = parseInt(parts[2], 10);
+
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                    // Handle 2-digit year
-                    const fullYear = year < 100 ? 2000 + year : year;
-                    return new Date(fullYear, month, day);
+                     // Handle 2-digit year, assume 20xx
+                    if (year < 100) {
+                        year += 2000;
+                    }
+                    return new Date(year, month, day);
                 }
             }
         }
-        // If it's an Excel serial number (a number)
-        if (typeof dateInput === 'number') {
-             // Excel's epoch starts on 1900-01-01, but incorrectly thinks 1900 is a leap year.
-             // The formula for conversion is: (excelDate - 25569) * 86400 * 1000
-            return new Date((dateInput - 25569) * 86400 * 1000);
+        
+        // If it's a string that can be parsed directly (e.g., ISO 8601)
+        const parsedDate = new Date(dateInput);
+        if (!isNaN(parsedDate.getTime())) {
+            return parsedDate;
         }
-
+        
         return null;
     }
+
 
     const parseExcel = (fileToParse: File) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const data = event.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
+                // Use cellDates: true to let XLSX handle date conversions where possible
+                const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData: RawStudentData[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                if(jsonData.length < 1) {
-                    setError("الملف فارغ أو غير صحيح.");
+                if(jsonData.length < 2) { // Should have header and at least one data row
+                    setError("الملف فارغ أو لا يحتوي على بيانات.");
                     setStudents([]);
                     return;
                 }
 
-                const headers: string[] = jsonData[0] as string[];
-                const headersMatch = REQUIRED_HEADERS.every(h => headers.includes(h));
+                const headers: string[] = (jsonData[0] as string[]).map(h => h.trim());
+                const missingHeaders = REQUIRED_HEADERS.filter(h => !headers.includes(h));
 
-                if (!headersMatch) {
-                    setError(`ملف غير متوافق. يجب أن يحتوي على الأعمدة التالية: ${REQUIRED_HEADERS.join(', ')}`);
+                if (missingHeaders.length > 0) {
+                    setError(`ملف غير متوافق. الأعمدة التالية مفقودة: ${missingHeaders.join(', ')}`);
                     setStudents([]);
                     return;
                 }
+
+                // Map headers to their index
+                const headerIndex: {[key: string]: number} = {};
+                headers.forEach((h, i) => {
+                    headerIndex[h] = i;
+                });
+                
 
                 const parsedStudents = jsonData.slice(1).map((row, rowIndex) => {
-                    const student: any = {};
-                    headers.forEach((header, index) => {
-                        const key = header as keyof RawStudentData;
-                        student[key] = (row as any[])[index];
-                    });
+                    const rawRow = row as any[];
                     
-                    const birthDate = parseDate(student["تاريخ الميلاد"]);
+                    const fullName = rawRow[headerIndex["الاسم الكامل"]];
+                    // Skip if the row is empty or doesn't have a name
+                    if (!fullName) return null;
+
+                    const birthDate = parseDate(rawRow[headerIndex["تاريخ الميلاد"]]);
 
                     if (!birthDate || isNaN(birthDate.getTime())) {
-                        console.warn(`تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}:`, student["تاريخ الميلاد"]);
-                         return null; // Skip invalid records
+                        console.warn(`تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}:`, rawRow[headerIndex["تاريخ الميلاد"]]);
+                         return { full_name: fullName, error: `تاريخ ميلاد غير صالح` }; // Return object with error for feedback
                     }
-
+                    
                     return {
-                        full_name: student["الاسم الكامل"],
-                        gender: student["الجنس"],
+                        full_name: fullName,
+                        gender: rawRow[headerIndex["الجنس"]],
                         birth_date: birthDate,
-                        level: student["المستوى الدراسي"],
-                        guardian_name: student["اسم الولي"],
-                        phone1: String(student["رقم الهاتف 1"] || ''),
-                        phone2: String(student["رقم الهاتف 2"] || ''),
-                        address: student["مقر السكن"],
-                        status: student["الحالة"],
-                        page_number: Number(student["رقم الصفحة"]) || 0,
-                        note: student["ملاحظات"] || '',
+                        level: rawRow[headerIndex["المستوى الدراسي"]],
+                        guardian_name: rawRow[headerIndex["اسم الولي"]],
+                        phone1: String(rawRow[headerIndex["رقم الهاتف 1"]] || ''),
+                        phone2: String(rawRow[headerIndex["رقم الهاتف 2"]] || ''),
+                        address: rawRow[headerIndex["مقر السكن"]],
+                        status: rawRow[headerIndex["الحالة"]],
+                        page_number: Number(rawRow[headerIndex["رقم الصفحة"]]) || 0,
+                        note: rawRow[headerIndex["ملاحظات"]] || '',
                     };
-                }).filter(s => s && s.full_name); // Filter out empty or invalid rows
+                }).filter(s => s); // Filter out empty rows
 
-                if (parsedStudents.length === 0 && jsonData.length > 1) {
-                     setError("لم يتم العثور على أي سجلات صالحة في الملف. يرجى التحقق من تنسيق تاريخ الميلاد (مثال: 24/02/2000).");
+                const invalidStudents = parsedStudents.filter(s => s && s.error);
+                if (invalidStudents.length > 0) {
+                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 24/02/2000).`);
+                     setStudents([]);
+                     return;
+                }
+
+                if (parsedStudents.length === 0) {
+                     setError("لم يتم العثور على أي سجلات صالحة في الملف.");
                      setStudents([]);
                      return;
                 }
@@ -157,7 +186,7 @@ export default function ImportPage() {
 
             } catch (err) {
                 console.error(err);
-                setError("حدث خطأ أثناء قراءة الملف. تأكد من أن الملف غير تالف.");
+                setError("حدث خطأ أثناء قراءة الملف. تأكد من أن الملف غير تالف وصيغته صحيحة.");
                 setStudents([]);
             }
         };
@@ -168,7 +197,11 @@ export default function ImportPage() {
     };
 
     const handleDownloadTemplate = () => {
-        const worksheet = XLSX.utils.aoa_to_sheet([REQUIRED_HEADERS]);
+        const wsData = [
+            REQUIRED_HEADERS,
+            ["محمد عبدالله", "ذكر", "15/05/2010", "5 إبتدائي", "عبدالله أحمد", "0123456789", "0987654321", "تقسيم الوادي", "تم الانضمام", 50, "طالب مجتهد"]
+        ];
+        const worksheet = XLSX.utils.aoa_to_sheet(wsData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "نموذج الطلبة");
         worksheet['!props'] = { RTL: true };
@@ -179,7 +212,8 @@ export default function ImportPage() {
         if (students.length === 0) return;
         setLoading(true);
         try {
-            await addMultipleStudents(students);
+            // The students array now contains valid Partial<Student> objects with Date objects
+            await addMultipleStudents(students as any[]);
             toast({
                 title: 'تم الاستيراد بنجاح!',
                 description: `تم استيراد ${students.length} طالبًا إلى قاعدة البيانات.`,
@@ -218,7 +252,7 @@ export default function ImportPage() {
                     تحميل النموذج
                 </h3>
                 <p className="text-muted-foreground">
-                    قم بتحميل نموذج Excel الجاهز، واملأه ببيانات الطلبة. تأكد من عدم تغيير أسماء الأعمدة.
+                    قم بتحميل نموذج Excel الجاهز الذي يحتوي على مثال توضيحي، واملأه ببيانات الطلبة. تأكد من عدم تغيير أسماء الأعمدة.
                 </p>
                 <Button onClick={handleDownloadTemplate} variant="secondary">
                     <Download className="ml-2"/>
@@ -238,7 +272,7 @@ export default function ImportPage() {
                  <Input 
                     type="file" 
                     onChange={handleFileChange} 
-                    accept=".xlsx"
+                    accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     className="w-full max-w-sm file:ml-4 file:font-headline"
                 />
             </div>
