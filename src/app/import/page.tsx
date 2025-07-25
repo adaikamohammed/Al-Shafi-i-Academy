@@ -68,14 +68,20 @@ export default function ImportPage() {
 
         // XLSX with `cellDates: true` will parse dates as Date objects
         if (dateInput instanceof Date) {
-            return dateInput;
+            // Check if date is valid
+            if (!isNaN(dateInput.getTime())) {
+                return dateInput;
+            }
         }
 
         // Handle Excel serial date number
         if (typeof dateInput === 'number') {
             // The formula for conversion is: (excelDate - 25569) * 86400 * 1000
             // This correctly handles the Excel 1900 leap year bug.
-            return new Date(Math.round((dateInput - 25569) * 86400 * 1000));
+            const date = new Date(Math.round((dateInput - 25569) * 86400 * 1000));
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
         }
         
         // Handle 'DD/MM/YYYY' or 'DD-MM-YYYY' string formats
@@ -87,11 +93,14 @@ export default function ImportPage() {
                 let year = parseInt(parts[2], 10);
 
                 if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-                     // Handle 2-digit year, assume 20xx
+                     // Handle 2-digit year, assume 20xx or 19xx
                     if (year < 100) {
-                        year += 2000;
+                        year += (year > new Date().getFullYear() % 100) ? 1900 : 2000;
                     }
-                    return new Date(year, month, day);
+                    const date = new Date(Date.UTC(year, month, day));
+                     if (!isNaN(date.getTime())) {
+                        return date;
+                    }
                 }
             }
         }
@@ -115,7 +124,8 @@ export default function ImportPage() {
                 const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const jsonData: RawStudentData[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                // Using sheet_to_json with header: 1 to get array of arrays
+                const jsonData: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
                 if(jsonData.length < 2) { // Should have header and at least one data row
                     setError("الملف فارغ أو لا يحتوي على بيانات.");
@@ -123,7 +133,7 @@ export default function ImportPage() {
                     return;
                 }
 
-                const headers: string[] = (jsonData[0] as string[]).map(h => h.trim());
+                const headers: string[] = jsonData[0].map(h => String(h || '').trim());
                 const missingHeaders = REQUIRED_HEADERS.filter(h => !headers.includes(h));
 
                 if (missingHeaders.length > 0) {
@@ -132,7 +142,6 @@ export default function ImportPage() {
                     return;
                 }
 
-                // Map headers to their index
                 const headerIndex: {[key: string]: number} = {};
                 headers.forEach((h, i) => {
                     headerIndex[h] = i;
@@ -140,33 +149,35 @@ export default function ImportPage() {
                 
 
                 const parsedStudents = jsonData.slice(1).map((row, rowIndex) => {
-                    const rawRow = row as any[];
+                    if (row.every(cell => cell === null || cell === '')) return null; // Skip completely empty rows
                     
-                    const fullName = rawRow[headerIndex["الاسم الكامل"]];
-                    // Skip if the row is empty or doesn't have a name
+                    const fullName = row[headerIndex["الاسم الكامل"]];
                     if (!fullName) return null;
 
-                    const birthDate = parseDate(rawRow[headerIndex["تاريخ الميلاد"]]);
+                    const birthDateRaw = row[headerIndex["تاريخ الميلاد"]];
+                    const birthDate = parseDate(birthDateRaw);
 
-                    if (!birthDate || isNaN(birthDate.getTime())) {
-                        console.warn(`تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}:`, rawRow[headerIndex["تاريخ الميلاد"]]);
-                         return { full_name: fullName, error: `تاريخ ميلاد غير صالح` }; // Return object with error for feedback
+                    if (!birthDate) {
+                         return { 
+                             full_name: fullName, 
+                             error: `تاريخ ميلاد غير صالح. القيمة المدخلة: '${birthDateRaw}'`
+                        }; 
                     }
                     
                     return {
                         full_name: fullName,
-                        gender: rawRow[headerIndex["الجنس"]],
+                        gender: row[headerIndex["الجنس"]],
                         birth_date: birthDate,
-                        level: rawRow[headerIndex["المستوى الدراسي"]],
-                        guardian_name: rawRow[headerIndex["اسم الولي"]],
-                        phone1: String(rawRow[headerIndex["رقم الهاتف 1"]] || ''),
-                        phone2: String(rawRow[headerIndex["رقم الهاتف 2"]] || ''),
-                        address: rawRow[headerIndex["مقر السكن"]],
-                        status: rawRow[headerIndex["الحالة"]],
-                        page_number: Number(rawRow[headerIndex["رقم الصفحة"]]) || 0,
-                        note: rawRow[headerIndex["ملاحظات"]] || '',
+                        level: row[headerIndex["المستوى الدراسي"]],
+                        guardian_name: row[headerIndex["اسم الولي"]],
+                        phone1: String(row[headerIndex["رقم الهاتف 1"]] || ''),
+                        phone2: String(row[headerIndex["رقم الهاتف 2"]] || ''),
+                        address: row[headerIndex["مقر السكن"]],
+                        status: row[headerIndex["الحالة"]],
+                        page_number: Number(row[headerIndex["رقم الصفحة"]]) || 0,
+                        note: row[headerIndex["ملاحظات"]] || '',
                     };
-                }).filter(s => s); // Filter out empty rows
+                }).filter(s => s); 
 
                 const invalidStudents = parsedStudents.filter(s => s && s.error);
                 if (invalidStudents.length > 0) {
@@ -174,14 +185,15 @@ export default function ImportPage() {
                      setStudents([]);
                      return;
                 }
-
-                if (parsedStudents.length === 0) {
+                
+                const validStudents = parsedStudents.filter(s => s && !s.error);
+                if (validStudents.length === 0) {
                      setError("لم يتم العثور على أي سجلات صالحة في الملف.");
                      setStudents([]);
                      return;
                 }
 
-                setStudents(parsedStudents as Partial<Student>[]);
+                setStudents(validStudents as Partial<Student>[]);
                 setError(null);
 
             } catch (err) {
@@ -209,7 +221,14 @@ export default function ImportPage() {
     };
     
     const handleImport = async () => {
-        if (students.length === 0) return;
+        if (students.length === 0 || error) {
+            toast({
+                title: 'لا يمكن الاستيراد',
+                description: 'الرجاء إصلاح الأخطاء أو التأكد من وجود بيانات صالحة للمتابعة.',
+                variant: 'destructive'
+            })
+            return;
+        }
         setLoading(true);
         try {
             // The students array now contains valid Partial<Student> objects with Date objects
@@ -332,3 +351,5 @@ export default function ImportPage() {
     </div>
   );
 }
+
+    
