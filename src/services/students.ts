@@ -1,3 +1,4 @@
+
 import { db } from './firebase';
 import { collection, addDoc, getDocs, Timestamp, onSnapshot, Unsubscribe, query, orderBy, doc, updateDoc, deleteDoc, where, getDoc, writeBatch } from 'firebase/firestore';
 
@@ -46,7 +47,7 @@ export interface Student {
   phone2?: string;
   address: string;
   registration_date: Timestamp | Date;
-  status: 'تم الانضمام' | 'مؤجل' | 'دخل لمدرسة أخرى' | 'مرفوض';
+  status: 'تم الانضمام' | 'مؤجل' | 'مرفوض' | 'دخل لمدرسة أخرى';
   page_number?: number;
   reminder_points: number;
   assigned_sheikh?: string;
@@ -128,6 +129,23 @@ export const updateStudent = async (studentId: string, studentData: Partial<Omit
         throw new Error('Could not update student.');
     }
 };
+
+
+export const updateMultipleStudents = async (updates: {id: string, status?: Student['status'], assigned_sheikh?: Student['assigned_sheikh']}[]) => {
+    const batch = writeBatch(db);
+    updates.forEach(updateData => {
+        const { id, ...data } = updateData;
+        const studentDoc = doc(db, 'الطلبة', id);
+        batch.update(studentDoc, data);
+    })
+    try {
+        await batch.commit();
+    } catch (e) {
+        console.error('Error batch updating documents: ', e);
+        throw new Error('Could not update students.');
+    }
+}
+
 
 export const deleteStudent = async (studentId: string) => {
     try {

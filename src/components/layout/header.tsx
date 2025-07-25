@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -17,6 +18,7 @@ import {
   LogOut,
   Upload,
   FileText,
+  Users2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -33,6 +35,7 @@ const navLinks = [
   { href: '/import', label: 'استيراد طلبة', icon: Upload },
   { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },
   { href: '/reports', label: 'التقارير', icon: FileText },
+  { href: '/cohorts', label: 'تكوين أفواج', icon: Users2 },
   { href: '/attendance', label: 'حضور الولي', icon: Users },
   { href: '/points', label: 'نقاط الحضور', icon: PlusCircle },
   { href: '/settings', label: 'الإعدادات', icon: Settings },
