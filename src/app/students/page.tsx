@@ -143,7 +143,7 @@ export default function StudentsPage() {
         return 'bg-yellow-100/50 dark:bg-yellow-900/30 print:bg-yellow-100 !important';
        case 'دخل لمدرسة أخرى':
         return 'bg-gray-200/50 dark:bg-gray-800/30 print:bg-gray-200 !important';
-      case 'رُفِض':
+      case 'مرفوض':
         return 'bg-red-100/50 dark:bg-red-900/30 print:bg-red-100 !important';
       default:
         return 'print:bg-white !important';
@@ -259,7 +259,7 @@ export default function StudentsPage() {
                          <SelectItem value="تم الانضمام">تم الانضمام</SelectItem>
                          <SelectItem value="مؤجل">مؤجل</SelectItem>
                          <SelectItem value="دخل لمدرسة أخرى">دخل لمدرسة أخرى</SelectItem>
-                         <SelectItem value="رُفِض">رُفِض</SelectItem>
+                         <SelectItem value="مرفوض">مرفوض</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

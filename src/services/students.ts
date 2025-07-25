@@ -46,7 +46,7 @@ export interface Student {
   phone2?: string;
   address: string;
   registration_date: Timestamp | Date;
-  status: 'تم الانضمام' | 'مؤجل' | 'دخل لمدرسة أخرى' | 'رُفِض' | 'متوقف عن الدراسة';
+  status: 'تم الانضمام' | 'مؤجل' | 'دخل لمدرسة أخرى' | 'مرفوض';
   page_number?: number;
   reminder_points: number;
   assigned_sheikh?: string;

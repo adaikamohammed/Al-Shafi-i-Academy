@@ -45,7 +45,7 @@ const StudentFormSchema = z.object({
   phone1: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح. يجب أن يبدأ بـ 0 ويتكون من 10 أرقام.'),
   phone2: z.string().regex(/^(0\d{9})$/, 'رقم الهاتف غير صالح.').optional().or(z.literal('')),
   address: z.string().min(5, 'العنوان يجب أن يتكون من 5 أحرف على الأقل.'),
-  status: z.enum(['تم الانضمام', 'مؤجل', 'دخل لمدرسة أخرى', 'رُفِض'], { required_error: 'الرجاء اختيار الحالة.' }),
+  status: z.enum(['تم الانضمام', 'مؤجل', 'دخل لمدرسة أخرى', 'مرفوض'], { required_error: 'الرجاء اختيار الحالة.' }),
   page_number: z.coerce.number().optional(),
   assigned_sheikh: z.string().optional(),
   note: z.string().optional(),
@@ -352,7 +352,7 @@ export default function StudentForm({ onSubmit, student = null, submitButtonText
                     <SelectItem value="تم الانضمام">تم الانضمام</SelectItem>
                     <SelectItem value="مؤجل">مؤجل</SelectItem>
                     <SelectItem value="دخل لمدرسة أخرى">دخل لمدرسة أخرى</SelectItem>
-                    <SelectItem value="رُفِض">رُفِض</SelectItem>
+                    <SelectItem value="مرفوض">مرفوض</SelectItem>
                 </SelectContent>
                 </Select>
                 <FormMessage />

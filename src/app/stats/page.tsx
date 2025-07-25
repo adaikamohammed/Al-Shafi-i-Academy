@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { BarChart, Users, BookCheck, BarChart3 as BarChartIcon, UserCheck, UserX, Clock, Award, User, Group } from 'lucide-react';
+import { BarChart, Users, BookCheck, BarChart3 as BarChartIcon, UserCheck, UserX, Clock, Award, User, Group, School } from 'lucide-react';
 import {
   Bar,
   BarChart as RechartsBarChart,
@@ -48,11 +48,11 @@ export default function StatsPage() {
             students: students.filter(s => s.level === level).length
         })).filter(item => item.students > 0);
         
-        const statuses = ['تم الانضمام', 'مؤجل', 'رُفِض', 'دخل لمدرسة أخرى'];
+        const statuses = ['تم الانضمام', 'مؤجل', 'مرفوض', 'دخل لمدرسة أخرى'];
         const statusColors: { [key: string]: string } = {
             'تم الانضمام': 'hsl(var(--accent))',
             'مؤجل': 'hsl(var(--primary))',
-            'رُفِض': 'hsl(var(--destructive))',
+            'مرفوض': 'hsl(var(--destructive))',
             'دخل لمدرسة أخرى': 'hsl(var(--muted-foreground))',
         };
 
@@ -69,9 +69,10 @@ export default function StatsPage() {
 
         const joined = statusDistribution.find(s => s.name === 'تم الانضمام')?.value || 0;
         const postponed = statusDistribution.find(s => s.name === 'مؤجل')?.value || 0;
-        const rejected = statusDistribution.find(s => s.name === 'رُفِض')?.value || 0;
+        const rejected = statusDistribution.find(s => s.name === 'مرفوض')?.value || 0;
+        const moved = statusDistribution.find(s => s.name === 'دخل لمدرسة أخرى')?.value || 0;
 
-        return { totalStudents, joined, postponed, rejected, highReminders, levelDistribution, statusDistribution, sheikhDistribution };
+        return { totalStudents, joined, postponed, rejected, moved, highReminders, levelDistribution, statusDistribution, sheikhDistribution };
     }, [students]);
     
     const PIE_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -145,7 +146,7 @@ export default function StatsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium font-headline">إجمالي الطلاب</CardTitle>
@@ -180,6 +181,15 @@ export default function StatsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.rejected}</div>
+          </CardContent>
+        </Card>
+         <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium font-headline">مدرسة أخرى</CardTitle>
+            <School className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.moved}</div>
           </CardContent>
         </Card>
          <Card>

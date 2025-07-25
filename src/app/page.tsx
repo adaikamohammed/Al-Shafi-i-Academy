@@ -23,7 +23,7 @@ import {
   LayoutDashboard,
   Clock,
   UserX,
-  ArrowLeft,
+  School,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -67,16 +67,18 @@ export default function DashboardPage() {
     const totalStudents = students.length;
     const joined = students.filter((s) => s.status === 'تم الانضمام').length;
     const postponed = students.filter((s) => s.status === 'مؤجل').length;
-    const rejected = students.filter((s) => s.status === 'رُفِض').length;
+    const rejected = students.filter((s) => s.status === 'مرفوض').length;
+    const moved = students.filter((s) => s.status === 'دخل لمدرسة أخرى').length;
     const latestStudents = students.slice(0, 5);
 
     const statusDistribution = [
       { name: 'تم الانضمام', value: joined, fill: 'hsl(var(--accent))' },
       { name: 'مؤجل', value: postponed, fill: 'hsl(var(--primary))' },
-      { name: 'رُفِض', value: rejected, fill: 'hsl(var(--destructive))' },
+      { name: 'مرفوض', value: rejected, fill: 'hsl(var(--destructive))' },
+      { name: 'مدرسة أخرى', value: moved, fill: 'hsl(var(--muted-foreground))' },
     ];
 
-    return { totalStudents, joined, postponed, rejected, latestStudents, statusDistribution };
+    return { totalStudents, joined, postponed, rejected, moved, latestStudents, statusDistribution };
   }, [students]);
 
   const StatCard = ({ title, value, icon: Icon, description, colorClass }: any) => (
@@ -99,8 +101,8 @@ export default function DashboardPage() {
                     <Skeleton className="h-10 w-64" />
                     <Skeleton className="h-4 w-96" />
                 </div>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {[...Array(4)].map((_, i) => (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+                    {[...Array(5)].map((_, i) => (
                         <Card key={i}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <Skeleton className="h-4 w-24" />
@@ -156,11 +158,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
          <StatCard title="إجمالي الطلاب" value={stats.totalStudents} icon={Users} />
          <StatCard title="المنضمون" value={stats.joined} icon={UserCheck} colorClass="text-accent" />
          <StatCard title="المؤجلون" value={stats.postponed} icon={Clock} colorClass="text-yellow-500" />
          <StatCard title="المرفوضون" value={stats.rejected} icon={UserX} colorClass="text-destructive" />
+         <StatCard title="مدرسة أخرى" value={stats.moved} icon={School} colorClass="text-gray-500" />
       </div>
 
        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-8 mt-8">
