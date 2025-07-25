@@ -45,7 +45,7 @@ import {
   Line,
   Legend,
 } from 'recharts';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, getYear } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -54,7 +54,7 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const [timeFrame, setTimeFrame] = useState<'weekly' | 'monthly'>('monthly');
+  const [timeFrame, setTimeFrame] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     if (!user) return;
@@ -113,7 +113,7 @@ export default function DashboardPage() {
             })
             .sort((a, b) => new Date(a.tooltip.split(' - ')[0]).getTime() - new Date(b.tooltip.split(' - ')[0]).getTime());
 
-    } else { // monthly
+    } else if (timeFrame === 'monthly') {
         const monthlyData: { [month: string]: { count: number, names: string[] } } = {};
         students.forEach(student => {
             const monthKey = format(student.registration_date, 'yyyy-MM');
@@ -131,6 +131,24 @@ export default function DashboardPage() {
                 studentNames: data.names,
             }))
             .sort((a, b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+    } else { // yearly
+        const yearlyData: { [year: string]: { count: number, names: string[] } } = {};
+        students.forEach(student => {
+            const yearKey = getYear(student.registration_date).toString();
+            if (!yearlyData[yearKey]) {
+                yearlyData[yearKey] = { count: 0, names: [] };
+            }
+            yearlyData[yearKey].count++;
+            yearlyData[yearKey].names.push(student.full_name);
+        });
+
+        return Object.entries(yearlyData)
+            .map(([yearKey, data]) => ({
+                name: yearKey,
+                "عدد التسجيلات": data.count,
+                studentNames: data.names,
+            }))
+            .sort((a, b) => parseInt(a.name) - parseInt(b.name));
     }
   }, [students, timeFrame]);
 
@@ -307,6 +325,12 @@ export default function DashboardPage() {
                 onClick={() => setTimeFrame('monthly')}
               >
                 عرض شهري
+              </Button>
+              <Button
+                variant={timeFrame === 'yearly' ? 'default' : 'outline'}
+                onClick={() => setTimeFrame('yearly')}
+              >
+                عرض سنوي
               </Button>
             </div>
           </div>
