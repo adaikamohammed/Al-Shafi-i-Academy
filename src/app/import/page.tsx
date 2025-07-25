@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { addMultipleStudents } from '@/services/students';
 import type { Student } from '@/services/students';
+import { Input } from '@/components/ui/input';
 
 
 const REQUIRED_HEADERS = [
