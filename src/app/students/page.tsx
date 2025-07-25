@@ -86,7 +86,10 @@ export default function StudentsPage() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.uid) {
+        setLoading(false);
+        return;
+    };
     const unsubscribe = getStudentsRealtime(user.uid, (studentsList) => {
       const formattedStudents = studentsList.map(s => ({
         ...s,
@@ -98,7 +101,7 @@ export default function StudentsPage() {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user?.uid]);
 
   const handleFilterChange = (filterName: keyof Filters, value: string) => {
     setFilters(prev => ({...prev, [filterName]: value}));

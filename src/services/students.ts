@@ -75,9 +75,10 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 
 export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[], userId: string) => {
     const batch = writeBatch(db);
+    const studentsCollectionRef = collection(db, 'الطلبة');
 
     studentsData.forEach(student => {
-        const newDocRef = doc(studentsCollection);
+        const newDocRef = doc(studentsCollectionRef);
         
         const { birth_date } = student;
 
