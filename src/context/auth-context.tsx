@@ -15,6 +15,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '@/services/firebase';
 import { usePathname, useRouter } from 'next/navigation';
+import { Header } from '@/components/layout/header';
 
 interface AuthContextType {
   user: User | null;
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
   };
 
-  if (loading || (!user && pathname !== '/login')) {
+  if (loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center">
             <div className="text-2xl font-headline">جار التحميل...</div>
@@ -81,7 +82,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     )
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Render children for auth pages, or the full layout for protected pages
+  if (!user && pathname === '/login') {
+     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
+
+  if(!user) {
+    return null;
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+        <div className="relative flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+        </div>
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
