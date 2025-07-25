@@ -25,6 +25,8 @@ import {
   UserX,
   School,
   LineChart,
+  Calendar,
+  Thermometer,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -45,7 +47,7 @@ import {
   Line,
   Legend,
 } from 'recharts';
-import { format, startOfWeek, endOfWeek, getMonth, getYear } from 'date-fns';
+import { format, startOfWeek, endOfWeek, getMonth, getYear, subMonths, startOfMonth } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
@@ -134,6 +136,32 @@ export default function DashboardPage() {
     }
   }, [students, timeFrame]);
 
+  const heatmapData = useMemo(() => {
+    const months = Array.from({ length: 24 }).map((_, i) => {
+      return startOfMonth(subMonths(new Date(), i));
+    }).reverse();
+
+    const data = months.map(month => {
+      const monthKey = format(month, 'yyyy-MM');
+      const studentsInMonth = students.filter(s => format(s.registration_date, 'yyyy-MM') === monthKey);
+      return {
+        date: month,
+        name: format(month, 'MMM yy', { locale: ar }),
+        count: studentsInMonth.length,
+        studentNames: studentsInMonth.map(s => s.full_name),
+      };
+    });
+    return data;
+  }, [students]);
+
+  const getHeatmapColor = (count: number) => {
+    if (count === 0) return '#666666'; // Dark Gray
+    if (count >= 1 && count <= 9) return '#E0E0E0'; // Light Gray
+    if (count >= 10 && count <= 19) return '#FFEB3B'; // Yellow
+    if (count >= 20) return '#E53935'; // Dark Red
+    return 'transparent';
+  };
+
   const StatCard = ({ title, value, icon: Icon, description, colorClass }: any) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -186,7 +214,7 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             </div>
-        )
+        );
     }
 
   return (
@@ -355,6 +383,63 @@ export default function DashboardPage() {
                 activeDot={{ r: 8, fill: 'hsl(var(--accent))', stroke: 'hsl(var(--background))' }}
               />
             </RechartsLineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      
+      <Card className="mt-8">
+        <CardHeader>
+            <CardTitle className="font-headline text-xl flex items-center gap-3">
+              <Thermometer className="h-6 w-6 text-primary" />
+              الخريطة الزمنية لتسجيل الطلبة الجدد
+            </CardTitle>
+            <CardDescription>
+              كثافة التسجيلات شهريًا خلال آخر 24 شهرًا. مرر الفأرة على أي مربع لرؤية التفاصيل.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={200}>
+            <RechartsBarChart data={heatmapData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="transparent"/>
+              <XAxis dataKey="name" interval={1} angle={-45} textAnchor="end" height={60} />
+              <YAxis hide={true} domain={[0, 'dataMax + 5']}/>
+              <Tooltip
+                cursor={{ fill: 'rgba(206, 212, 218, 0.3)' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    const namesToShow = data.studentNames.slice(0, 5);
+                    const remainingNames = data.studentNames.length - namesToShow.length;
+
+                    return (
+                      <div className="p-3 bg-background border rounded-md shadow-lg max-w-xs">
+                        <p className="font-bold text-base mb-2">🗓️ {format(data.date, 'MMMM yyyy', { locale: ar })}</p>
+                        <p className="text-sm font-semibold mb-2" style={{color: getHeatmapColor(data.count)}}>
+                          👥 عدد التسجيلات: {data.count}
+                        </p>
+                        {data.count > 0 && (
+                             <div className="border-t pt-2 space-y-1">
+                                <p className="text-xs text-muted-foreground font-bold">الطلاب المسجلون:</p>
+                                {namesToShow.map((name: string, index: number) => (
+                                    <p key={index} className="text-xs truncate">{`${index + 1}. ${name}`}</p>
+                                ))}
+                                {remainingNames > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1">... و {remainingNames} آخرون.</p>
+                                )}
+                            </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar dataKey="count" name="التسجيلات">
+                {heatmapData.map((entry, index) => (
+                    <Bar key={`cell-${index}`} dataKey="count" fill={getHeatmapColor(entry.count)} />
+                ))}
+              </Bar>
+            </RechartsBarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
