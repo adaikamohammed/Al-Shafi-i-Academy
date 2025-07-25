@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, List, MoreVertical, Search, Filter, X, Printer, FileDown } from 'lucide-react';
+import { Edit, Trash2, List, MoreVertical, Search, Filter, X, Printer, FileDown, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,15 +138,15 @@ export default function StudentsPage() {
   const getStatusRowClass = (status: Student['status']) => {
     switch (status) {
       case 'تم الانضمام':
-        return 'bg-green-100/50 dark:bg-green-900/30 print:bg-green-100';
+        return 'bg-green-100/50 dark:bg-green-900/30 print:bg-green-100 !important';
       case 'مؤجل':
-        return 'bg-yellow-100/50 dark:bg-yellow-900/30 print:bg-yellow-100';
+        return 'bg-yellow-100/50 dark:bg-yellow-900/30 print:bg-yellow-100 !important';
        case 'دخل لمدرسة أخرى':
-        return 'bg-gray-200/50 dark:bg-gray-800/30 print:bg-gray-200';
+        return 'bg-gray-200/50 dark:bg-gray-800/30 print:bg-gray-200 !important';
       case 'رُفِض':
-        return 'bg-red-100/50 dark:bg-red-900/30 print:bg-red-100';
+        return 'bg-red-100/50 dark:bg-red-900/30 print:bg-red-100 !important';
       default:
-        return 'print:bg-white';
+        return 'print:bg-white !important';
     }
   };
   
@@ -346,14 +346,20 @@ export default function StudentsPage() {
                         <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="font-headline min-w-[150px]">الاسم الكامل</TableHead>
-                                <TableHead className="font-headline hidden xl:table-cell">الجنس</TableHead>
-                                <TableHead className="font-headline hidden lg:table-cell">العمر</TableHead>
-                                <TableHead className="font-headline min-w-[120px]">المستوى</TableHead>
-                                <TableHead className="font-headline min-w-[150px] hidden md:table-cell">اسم الولي</TableHead>
-                                <TableHead className="font-headline hidden xl:table-cell min-w-[120px]">رقم الهاتف 1</TableHead>
-                                <TableHead className="font-headline min-w-[100px]">الحالة</TableHead>
-                                <TableHead className="font-headline hidden lg:table-cell min-w-[150px]">الشيخ المسؤول</TableHead>
+                                <TableHead className="font-headline">الاسم الكامل</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden sm:table-cell">الجنس</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden sm:table-cell">العمر</TableHead>
+                                <TableHead className="font-headline">المستوى</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden md:table-cell">اسم الولي</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden lg:table-cell">رقم الهاتف 1</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">رقم الهاتف 2</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">مقر السكن</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">رقم الصفحة</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden lg:table-cell">تاريخ التسجيل</TableHead>
+                                <TableHead className="font-headline">الحالة</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">الشيخ المسؤول</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">النقاط</TableHead>
+                                <TableHead className="font-headline print:table-cell hidden xl:table-cell">ملاحظات</TableHead>
                                 <TableHead className="font-headline text-center print:hidden">إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -361,15 +367,19 @@ export default function StudentsPage() {
                             {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                             <TableRow key={student.id} className={getStatusRowClass(student.status)}>
                                 <TableCell className="font-medium">{student.full_name}</TableCell>
-                                <TableCell className="hidden xl:table-cell">{student.gender}</TableCell>
-                                <TableCell className="hidden lg:table-cell">{student.age} س</TableCell>
+                                <TableCell className="print:table-cell hidden sm:table-cell">{student.gender}</TableCell>
+                                <TableCell className="print:table-cell hidden sm:table-cell">{student.age} س</TableCell>
                                 <TableCell>{student.level}</TableCell>
-                                <TableCell className="hidden md:table-cell">{student.guardian_name}</TableCell>
-                                <TableCell className="hidden xl:table-cell font-mono" dir="ltr">{student.phone1}</TableCell>
-                                <TableCell>
-                                    {student.status}
-                                </TableCell>
-                                 <TableCell className="hidden lg:table-cell">{student.assigned_sheikh || '-'}</TableCell>
+                                <TableCell className="print:table-cell hidden md:table-cell">{student.guardian_name}</TableCell>
+                                <TableCell className="print:table-cell hidden lg:table-cell font-mono" dir="ltr">{student.phone1}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell font-mono" dir="ltr">{student.phone2}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell">{student.address}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell">{student.page_number}</TableCell>
+                                <TableCell className="print:table-cell hidden lg:table-cell font-mono" dir="ltr">{format(student.registration_date, 'yyyy-MM-dd')}</TableCell>
+                                <TableCell>{student.status}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell">{student.assigned_sheikh || '-'}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell">{student.reminder_points || 0}</TableCell>
+                                <TableCell className="print:table-cell hidden xl:table-cell max-w-[200px] truncate">{student.note || '-'}</TableCell>
                                 <TableCell className="text-center print:hidden">
                                 <AlertDialog>
                                 <DropdownMenu>
@@ -410,7 +420,7 @@ export default function StudentsPage() {
                             </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="text-center h-24">
+                                    <TableCell colSpan={15} className="text-center h-24">
                                         لا توجد نتائج مطابقة للبحث أو الفلاتر المحددة.
                                     </TableCell>
                                 </TableRow>
