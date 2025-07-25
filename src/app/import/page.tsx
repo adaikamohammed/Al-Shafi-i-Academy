@@ -181,7 +181,7 @@ export default function ImportPage() {
 
                 const invalidStudents = parsedStudents.filter(s => s && s.error);
                 if (invalidStudents.length > 0) {
-                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 24/02/2000).`);
+                     setError(`تم العثور على ${invalidStudents.length} سجل بمشاكل. المثال الأول: الطالب "${invalidStudents[0]?.full_name}" - ${invalidStudents[0]?.error}. الرجاء مراجعة الملف وتصحيح التواريخ (مثال: 2000/02/24).`);
                      setStudents([]);
                      return;
                 }
@@ -231,7 +231,6 @@ export default function ImportPage() {
         }
         setLoading(true);
         try {
-            // The students array now contains valid Partial<Student> objects with Date objects
             await addMultipleStudents(students as any[]);
             toast({
                 title: 'تم الاستيراد بنجاح!',
