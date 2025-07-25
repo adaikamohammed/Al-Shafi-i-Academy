@@ -140,4 +140,7 @@
     background-color: #f2f2f2 !important;
     font-weight: bold;
   }
+  tr > th:first-child, tr > td:first-child {
+    display: table-cell !important;
+  }
 }
