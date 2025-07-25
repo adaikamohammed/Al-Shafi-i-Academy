@@ -313,7 +313,7 @@ export default function StudentsPage() {
                             <div className='flex gap-2 print:hidden'>
                                 <Button variant="outline" onClick={handlePrint}>
                                     <Printer className="h-4 w-4 ml-2" />
-                                    طباعة
+                                    طباعة / PDF
                                 </Button>
                                 <Button variant="outline" onClick={handleExport}>
                                     <FileDown className="h-4 w-4 ml-2" />
