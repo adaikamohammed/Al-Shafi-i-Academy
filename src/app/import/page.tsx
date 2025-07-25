@@ -62,12 +62,42 @@ export default function ImportPage() {
         }
     };
 
+    const parseDate = (dateInput: any): Date | null => {
+        if (!dateInput) return null;
+        // If it's already a Date object from xlsx parsing
+        if (dateInput instanceof Date) {
+            return dateInput;
+        }
+        // If it's a string like 'DD/MM/YYYY' or 'DD-MM-YYYY'
+        if (typeof dateInput === 'string') {
+            const parts = dateInput.split(/[/.-]/);
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                const year = parseInt(parts[2], 10);
+                if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                    // Handle 2-digit year
+                    const fullYear = year < 100 ? 2000 + year : year;
+                    return new Date(fullYear, month, day);
+                }
+            }
+        }
+        // If it's an Excel serial number (a number)
+        if (typeof dateInput === 'number') {
+             // Excel's epoch starts on 1900-01-01, but incorrectly thinks 1900 is a leap year.
+             // The formula for conversion is: (excelDate - 25569) * 86400 * 1000
+            return new Date((dateInput - 25569) * 86400 * 1000);
+        }
+
+        return null;
+    }
+
     const parseExcel = (fileToParse: File) => {
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
                 const data = event.target?.result;
-                const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+                const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const jsonData: RawStudentData[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
@@ -87,17 +117,24 @@ export default function ImportPage() {
                     return;
                 }
 
-                const parsedStudents = jsonData.slice(1).map(row => {
+                const parsedStudents = jsonData.slice(1).map((row, rowIndex) => {
                     const student: any = {};
                     headers.forEach((header, index) => {
                         const key = header as keyof RawStudentData;
                         student[key] = (row as any[])[index];
                     });
                     
+                    const birthDate = parseDate(student["تاريخ الميلاد"]);
+
+                    if (!birthDate || isNaN(birthDate.getTime())) {
+                        console.warn(`تاريخ ميلاد غير صالح في الصف ${rowIndex + 2}:`, student["تاريخ الميلاد"]);
+                         return null; // Skip invalid records
+                    }
+
                     return {
                         full_name: student["الاسم الكامل"],
                         gender: student["الجنس"],
-                        birth_date: student["تاريخ الميلاد"],
+                        birth_date: birthDate,
                         level: student["المستوى الدراسي"],
                         guardian_name: student["اسم الولي"],
                         phone1: String(student["رقم الهاتف 1"] || ''),
@@ -107,9 +144,15 @@ export default function ImportPage() {
                         page_number: Number(student["رقم الصفحة"]) || 0,
                         note: student["ملاحظات"] || '',
                     };
-                }).filter(s => s.full_name); // Filter out empty rows
+                }).filter(s => s && s.full_name); // Filter out empty or invalid rows
 
-                setStudents(parsedStudents);
+                if (parsedStudents.length === 0 && jsonData.length > 1) {
+                     setError("لم يتم العثور على أي سجلات صالحة في الملف. يرجى التحقق من تنسيق تاريخ الميلاد (مثال: 24/02/2000).");
+                     setStudents([]);
+                     return;
+                }
+
+                setStudents(parsedStudents as Partial<Student>[]);
                 setError(null);
 
             } catch (err) {
