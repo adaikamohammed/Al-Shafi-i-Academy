@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   X,
   PlusCircle,
   CalendarDays,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -21,6 +22,7 @@ import { Logo } from '@/components/logo';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useAuth } from '@/context/auth-context';
 
 const navLinks = [
   { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
@@ -36,6 +38,14 @@ export function Header() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
   const pathname = usePathname();
+  const { logout } = useAuth();
+  const router = useRouter();
+
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   useEffect(() => {
     // Set date only on client-side to avoid hydration mismatch
@@ -78,6 +88,10 @@ export function Header() {
           onClick={() => setMobileMenuOpen(false)}
         />
       ))}
+        <Button onClick={handleLogout} variant="ghost" className="justify-start mt-4 font-headline flex items-center gap-3 rounded-md px-3 py-2 text-destructive hover:text-destructive">
+            <LogOut className="h-5 w-5"/>
+            تسجيل الخروج
+        </Button>
     </nav>
   );
 
@@ -121,6 +135,9 @@ export function Header() {
               </Button>
             );
           })}
+           <Button onClick={handleLogout} variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="تسجيل الخروج">
+              <LogOut className="h-5 w-5"/>
+           </Button>
         </nav>
 
         {/* Mobile Navigation */}
