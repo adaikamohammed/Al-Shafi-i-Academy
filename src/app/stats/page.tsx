@@ -48,12 +48,12 @@ export default function StatsPage() {
             students: students.filter(s => s.level === level).length
         })).filter(item => item.students > 0);
         
-        const statuses = ['تم الانضمام', 'مؤجل', 'رُفِض', 'متوقف عن الدراسة'];
+        const statuses = ['تم الانضمام', 'مؤجل', 'رُفِض', 'دخل لمدرسة أخرى'];
         const statusColors: { [key: string]: string } = {
             'تم الانضمام': 'hsl(var(--accent))',
             'مؤجل': 'hsl(var(--primary))',
             'رُفِض': 'hsl(var(--destructive))',
-            'متوقف عن الدراسة': 'hsl(var(--muted-foreground))',
+            'دخل لمدرسة أخرى': 'hsl(var(--muted-foreground))',
         };
 
         const statusDistribution = statuses.map(status => ({
@@ -67,7 +67,6 @@ export default function StatsPage() {
             value: students.filter(s => s.assigned_sheikh === sheikh).length,
         })).filter(item => item.value > 0);
 
-        // For the cards, we can still calculate them directly
         const joined = statusDistribution.find(s => s.name === 'تم الانضمام')?.value || 0;
         const postponed = statusDistribution.find(s => s.name === 'مؤجل')?.value || 0;
         const rejected = statusDistribution.find(s => s.name === 'رُفِض')?.value || 0;
