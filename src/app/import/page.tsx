@@ -32,10 +32,23 @@ const REQUIRED_HEADERS = [
     "الحالة", "رقم الصفحة", "ملاحظات"
 ];
 
-// Type for the raw data read from Excel
-type RawStudentData = {
-  [key: string]: any;
-};
+// Helper functions to calculate age and age group
+function calculateAge(birthDate: Date) {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+function getAgeGroup(age: number): Student['age_group'] {
+    if (age < 7) return 'أقل من 7';
+    if (age >= 7 && age <= 10) return 'من 7–10';
+    if (age >= 11 && age <= 13) return 'من 11–13';
+    return '14+';
+}
 
 
 export default function ImportPage() {
@@ -164,10 +177,15 @@ export default function ImportPage() {
                         }; 
                     }
                     
+                    const age = calculateAge(birthDate);
+                    const age_group = getAgeGroup(age);
+                    
                     return {
                         full_name: fullName,
                         gender: row[headerIndex["الجنس"]],
                         birth_date: birthDate,
+                        age: age,
+                        age_group: age_group,
                         level: row[headerIndex["المستوى الدراسي"]],
                         guardian_name: row[headerIndex["اسم الولي"]],
                         phone1: String(row[headerIndex["رقم الهاتف 1"]] || ''),
@@ -357,5 +375,3 @@ export default function ImportPage() {
     </div>
   );
 }
-
-    

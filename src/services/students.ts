@@ -89,7 +89,7 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 'birth_date' | 'registration_date'> & { birth_date: Date, registration_date: Date })[]) => {
+export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
     const batch = writeBatch(db);
 
     studentsData.forEach(student => {
@@ -97,34 +97,30 @@ export const addMultipleStudents = async (studentsData: (Omit<Partial<Student>, 
         
         const { birth_date, registration_date } = student;
 
-        if (!birth_date || isNaN(birth_date.getTime())) {
+        if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
             console.error('Invalid birth date for student:', student.full_name);
-            // This case should be prevented by the frontend validation
             return; 
         }
-       
-        const age = calculateAge(birth_date);
-        const age_group = getAgeGroup(age);
 
         const newStudent: Omit<Student, 'id'> = {
             full_name: student.full_name || '',
             gender: student.gender === 'ذكر' ? 'ذكر' : 'أنثى',
             birth_date: Timestamp.fromDate(birth_date),
-            age,
-            age_group,
+            age: student.age!,
+            age_group: student.age_group!,
             level: student.level || 'غير محدد' as any,
             guardian_name: student.guardian_name || '',
             phone1: student.phone1 || '',
             phone2: student.phone2 || '',
             address: student.address || '',
-            registration_date: Timestamp.fromDate(registration_date || new Date()),
+            registration_date: Timestamp.fromDate(registration_date as Date || new Date()),
             status: student.status || 'مؤجل',
             page_number: student.page_number || 0,
             reminder_points: 0,
             assigned_sheikh: student.assigned_sheikh || '',
             note: student.note || ''
         };
-
+        
         batch.set(newDocRef, newStudent);
     });
 
@@ -220,5 +216,3 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
         throw new Error('Could not add points.');
     }
 };
-
-    
