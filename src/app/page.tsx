@@ -46,6 +46,7 @@ import {
   LineChart as RechartsLineChart,
   Line,
   Legend,
+  Cell,
 } from 'recharts';
 import { format, startOfWeek, endOfWeek, getMonth, getYear, subMonths, startOfMonth } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -436,7 +437,7 @@ export default function DashboardPage() {
               />
               <Bar dataKey="count" name="التسجيلات">
                 {heatmapData.map((entry, index) => (
-                    <Bar key={`cell-${index}`} dataKey="count" fill={getHeatmapColor(entry.count)} />
+                    <Cell key={`cell-${index}`} fill={getHeatmapColor(entry.count)} />
                 ))}
               </Bar>
             </RechartsBarChart>
