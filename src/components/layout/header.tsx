@@ -14,7 +14,8 @@ import {
   X,
   PlusCircle,
   CalendarDays,
-  LogOut
+  LogOut,
+  Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -28,6 +29,7 @@ const navLinks = [
   { href: '/', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/register', label: 'تسجيل طالب جديد', icon: UserPlus },
   { href: '/students', label: 'قائمة الطلبة', icon: List },
+  { href: '/import', label: 'استيراد طلبة', icon: Upload },
   { href: '/stats', label: 'الإحصائيات', icon: BarChart3 },
   { href: '/attendance', label: 'حضور الولي', icon: Users },
   { href: '/points', label: 'نقاط الحضور', icon: PlusCircle },

@@ -55,6 +55,25 @@ export interface Student {
 
 const studentsCollection = collection(db, 'الطلبة');
 
+// --- Helper Functions ---
+function calculateAge(birthDate: Date) {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+}
+
+function getAgeGroup(age: number): Student['age_group'] {
+    if (age < 7) return 'أقل من 7';
+    if (age >= 7 && age <= 10) return 'من 7–10';
+    if (age >= 11 && age <= 13) return 'من 11–13';
+    return '14+';
+}
+
+
 export const addStudent = async (studentData: Omit<Student, 'id'|'registration_date'|'birth_date'> & { birth_date: Date }) => {
   try {
     const docRef = await addDoc(studentsCollection, {
@@ -68,6 +87,48 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
     throw new Error('Could not add student.');
   }
 };
+
+
+export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
+    const batch = writeBatch(db);
+
+    studentsData.forEach(student => {
+        const newDocRef = doc(studentsCollection);
+        
+        const birthDate = student.birth_date instanceof Date ? student.birth_date : new Date();
+        const age = calculateAge(birthDate);
+        const age_group = getAgeGroup(age);
+
+        const newStudent: Omit<Student, 'id'> = {
+            full_name: student.full_name || '',
+            gender: student.gender === 'ذكر' ? 'ذكر' : 'أنثى',
+            birth_date: Timestamp.fromDate(birthDate),
+            age,
+            age_group,
+            level: student.level || 'غير محدد' as any,
+            guardian_name: student.guardian_name || '',
+            phone1: student.phone1 || '',
+            phone2: student.phone2 || '',
+            address: student.address || '',
+            registration_date: Timestamp.now(),
+            status: student.status || 'مؤجل',
+            page_number: student.page_number || 0,
+            reminder_points: 0,
+            assigned_sheikh: student.assigned_sheikh || '',
+            note: student.note || ''
+        };
+
+        batch.set(newDocRef, newStudent);
+    });
+
+    try {
+        await batch.commit();
+    } catch (e) {
+        console.error("Error adding multiple students: ", e);
+        throw new Error("Could not import students.");
+    }
+};
+
 
 export const updateStudent = async (studentId: string, studentData: Partial<Omit<Student, 'id'>>) => {
     try {
