@@ -71,7 +71,7 @@ export const addStudent = async (studentData: Omit<Student, 'id'|'registration_d
 };
 
 
-export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
+export const addMultipleStudents = async (studentsData: Partial<Omit<Student, 'id' | 'registration_date'>>[]) => {
     const batch = writeBatch(db);
 
     studentsData.forEach(student => {
@@ -79,16 +79,17 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
         
         const { birth_date } = student;
 
+        // This is a critical check. Ensure birth_date is a valid Date object.
         if (!birth_date || !(birth_date instanceof Date) || isNaN(birth_date.getTime())) {
-            console.error('Invalid birth date for student:', student.full_name);
-            // This should be caught earlier in the UI, but as a safeguard:
-            throw new Error(`تاريخ ميلاد غير صالح للطالب: ${student.full_name}`);
+            console.error('Invalid or missing birth date for student:', student.full_name);
+            // This error should be thrown to be caught by the UI.
+            throw new Error(`تاريخ ميلاد غير صالح أو مفقود للطالب: ${student.full_name}`);
         }
 
         const newStudentData = {
             ...student,
-            birth_date: Timestamp.fromDate(birth_date),
-            registration_date: Timestamp.now(),
+            birth_date: Timestamp.fromDate(birth_date), // Convert valid Date to Timestamp
+            registration_date: Timestamp.now(), // Set registration date on the server
             reminder_points: student.reminder_points || 0,
             assigned_sheikh: student.assigned_sheikh || '',
             note: student.note || '',
@@ -102,8 +103,9 @@ export const addMultipleStudents = async (studentsData: Partial<Student>[]) => {
     try {
         await batch.commit();
     } catch (e) {
-        console.error("Error adding multiple students: ", e);
-        throw new Error("Could not import students.");
+        console.error("Error committing batch: ", e);
+        // Re-throw the error to be handled by the calling function in the UI.
+        throw new Error("فشلت عملية حفظ الطلاب في قاعدة البيانات.");
     }
 };
 
@@ -192,4 +194,3 @@ export const addReminderPoints = async (studentId: string, pointsToAdd: number):
     }
 };
 
-    
