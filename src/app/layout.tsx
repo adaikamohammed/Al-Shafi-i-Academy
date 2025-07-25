@@ -4,9 +4,6 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
 
-// This is the new root layout. It's simplified to just include the basic HTML structure.
-// The AuthProvider will be used in the layout file of each specific route.
-
 export default function RootLayout({
   children,
 }: Readonly<{
