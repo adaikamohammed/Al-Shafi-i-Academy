@@ -141,6 +141,8 @@ export default function StudentsPage() {
         return 'bg-green-100/50 dark:bg-green-900/30 print:bg-green-100';
       case 'مؤجل':
         return 'bg-yellow-100/50 dark:bg-yellow-900/30 print:bg-yellow-100';
+       case 'دخل لمدرسة أخرى':
+        return 'bg-gray-200/50 dark:bg-gray-800/30 print:bg-gray-200';
       case 'رُفِض':
         return 'bg-red-100/50 dark:bg-red-900/30 print:bg-red-100';
       default:
@@ -201,11 +203,15 @@ export default function StudentsPage() {
         "العمر": s.age,
         "المستوى الدراسي": s.level,
         "اسم الولي": s.guardian_name,
-        "رقم الهاتف": s.phone1,
+        "رقم الهاتف 1": s.phone1,
+        "رقم الهاتف 2": s.phone2 || '-',
+        "مقر السكن": s.address,
+        "رقم الصفحة": s.page_number,
+        "تاريخ التسجيل": format(s.registration_date, 'yyyy-MM-dd'),
         "الحالة": s.status,
+        "الملاحظات": s.note || '-',
         "الشيخ المسؤول": s.assigned_sheikh || '-',
         "نقاط التذكير": s.reminder_points,
-        "تاريخ التسجيل": format(s.registration_date, 'yyyy-MM-dd')
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -336,30 +342,34 @@ export default function StudentsPage() {
                     {loading ? (
                         <p className='text-center py-8'>جارٍ تحميل بيانات الطلبة...</p>
                     ) : (
-                        <div className="border rounded-md">
+                        <div className="border rounded-md overflow-x-auto">
                         <Table>
                         <TableHeader>
                             <TableRow>
-                            <TableHead className="font-headline">الاسم الكامل</TableHead>
-                            <TableHead className="font-headline hidden md:table-cell">العمر</TableHead>
-                            <TableHead className="font-headline">المستوى</TableHead>
-                            <TableHead className="font-headline hidden sm:table-cell">الحالة</TableHead>
-                            <TableHead className="font-headline hidden lg:table-cell">تاريخ التسجيل</TableHead>
-                            <TableHead className="font-headline text-center print:hidden">إجراءات</TableHead>
+                                <TableHead className="font-headline min-w-[150px]">الاسم الكامل</TableHead>
+                                <TableHead className="font-headline hidden xl:table-cell">الجنس</TableHead>
+                                <TableHead className="font-headline hidden lg:table-cell">العمر</TableHead>
+                                <TableHead className="font-headline min-w-[120px]">المستوى</TableHead>
+                                <TableHead className="font-headline min-w-[150px] hidden md:table-cell">اسم الولي</TableHead>
+                                <TableHead className="font-headline hidden xl:table-cell min-w-[120px]">رقم الهاتف 1</TableHead>
+                                <TableHead className="font-headline min-w-[100px]">الحالة</TableHead>
+                                <TableHead className="font-headline hidden lg:table-cell min-w-[150px]">الشيخ المسؤول</TableHead>
+                                <TableHead className="font-headline text-center print:hidden">إجراءات</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                             <TableRow key={student.id} className={getStatusRowClass(student.status)}>
                                 <TableCell className="font-medium">{student.full_name}</TableCell>
-                                <TableCell className="hidden md:table-cell">{student.age} سنوات</TableCell>
+                                <TableCell className="hidden xl:table-cell">{student.gender}</TableCell>
+                                <TableCell className="hidden lg:table-cell">{student.age} س</TableCell>
                                 <TableCell>{student.level}</TableCell>
-                                <TableCell className="hidden sm:table-cell">
+                                <TableCell className="hidden md:table-cell">{student.guardian_name}</TableCell>
+                                <TableCell className="hidden xl:table-cell font-mono" dir="ltr">{student.phone1}</TableCell>
+                                <TableCell>
                                     {student.status}
                                 </TableCell>
-                                <TableCell className="hidden lg:table-cell font-mono" dir="ltr">
-                                {format(student.registration_date, 'yyyy-MM-dd')}
-                                </TableCell>
+                                 <TableCell className="hidden lg:table-cell">{student.assigned_sheikh || '-'}</TableCell>
                                 <TableCell className="text-center print:hidden">
                                 <AlertDialog>
                                 <DropdownMenu>
@@ -372,7 +382,7 @@ export default function StudentsPage() {
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem className="flex gap-2" onSelect={() => handleEdit(student)}>
                                             <Edit className="h-4 w-4" />
-                                            عرض وتعديل البيانات
+                                            عرض وتعديل كامل
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <AlertDialogTrigger asChild>
@@ -400,7 +410,7 @@ export default function StudentsPage() {
                             </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center h-24">
+                                    <TableCell colSpan={9} className="text-center h-24">
                                         لا توجد نتائج مطابقة للبحث أو الفلاتر المحددة.
                                     </TableCell>
                                 </TableRow>
