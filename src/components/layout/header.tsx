@@ -107,9 +107,8 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2">
-            <Logo />
-            <span className="hidden font-headline text-lg font-bold text-accent sm:inline-block">
-                المدرسة القرآنية - الشافعي
+            <span className="font-headline text-lg font-bold text-accent sm:inline-block">
+                المدرسة القرآنية للإمام الشافعي
             </span>
             </Link>
             {currentDate && (
@@ -159,9 +158,8 @@ export function Header() {
             <SheetContent side="right">
               <div className="flex items-center justify-between">
                  <Link href="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
-                    <Logo />
                     <span className="font-headline text-lg font-bold text-accent">
-                      المدرسة القرآنية - الشافعي
+                      المدرسة القرآنية للإمام الشافعي
                     </span>
                  </Link>
               </div>
